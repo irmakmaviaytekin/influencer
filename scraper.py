@@ -65,7 +65,8 @@ def scrape_profile(username: str, use_cache: bool = True) -> list[dict]:
             "addParentData": False,
         }
         run = client.actor(config.APIFY_ACTOR).call(run_input=run_input)
-        raw = list(client.dataset(run["defaultDatasetId"]).iterate_items())
+        run_id = run["id"] if isinstance(run, dict) else run.id
+        raw = list(client.run(run_id).dataset().iterate_items())
         cache.write_text(json.dumps(raw, indent=2, default=str))
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=30 * config.MONTHS_LOOKBACK)

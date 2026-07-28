@@ -2,7 +2,7 @@
 
 Scans up to 40 Instagram profiles, pulls the last 12 months of posts, flags brand
 deals, and uses an AI vision model to detect alcohol consumption in videos. Output
-is a single Excel report.
+is a single CSV report.
 
 ## How it works
 
@@ -13,7 +13,7 @@ is a single Excel report.
      sponsor phrases, and collects `@mentioned`/tagged brand accounts.
    - *Alcohol*: downloads each video, samples 6 evenly-spaced frames, and asks a
      Claude vision model whether alcohol is being consumed or clearly visible.
-3. **main.py** runs everything and writes `influencer_report.xlsx`.
+3. **main.py** runs everything and writes `influencer_report.csv`.
 
 ## Setup
 

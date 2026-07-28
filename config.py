@@ -14,7 +14,7 @@ ROOT = Path(__file__).parent
 PROFILES_FILE = ROOT / "profiles.txt"
 CACHE_DIR = ROOT / "cache"          # raw scraped JSON, cached per profile
 VIDEO_DIR = ROOT / "cache" / "videos"
-OUTPUT_XLSX = ROOT / "influencer_report.xlsx"
+OUTPUT_CSV = ROOT / "influencer_report.csv"
 
 # --- Scraping ---
 # Apify actor that scrapes public Instagram profiles/posts.

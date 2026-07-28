@@ -1,4 +1,4 @@
-"""Orchestrator: scrape -> analyze -> Excel report.
+"""Orchestrator: scrape -> analyze -> Excel report (3 tabs).
 
 Usage:
     python main.py                 # run all profiles in profiles.txt
@@ -15,6 +15,9 @@ import config
 from scraper import scrape_profile
 from analyzer import detect_brand_deals, detect_alcohol
 
+HEAD_FILL = PatternFill("solid", fgColor="222E3C")
+HEAD_FONT = Font(bold=True, color="FFFFFF")
+
 
 def load_profiles() -> list[str]:
     lines = config.PROFILES_FILE.read_text().splitlines()
@@ -24,64 +27,91 @@ def load_profiles() -> list[str]:
 
 def analyze_profile(username: str, client: anthropic.Anthropic) -> dict:
     posts = scrape_profile(username)
+    self_handle = username.lower()
 
-    deal_posts, deal_brands = [], set()
-    alcohol_posts = []
+    deal_details = []      # one dict per brand-deal post
+    alcohol_details = []   # one dict per post where alcohol was detected
+    all_brands = set()
 
     for post in posts:
         deal = detect_brand_deals(post)
         if deal["is_deal"]:
-            deal_posts.append(post)
-            deal_brands.update(deal["brands"])
+            # Drop the influencer's own handle from the brand list.
+            brands = [b for b in deal["brands"] if b.lower() != self_handle]
+            all_brands.update(brands)
+            deal_details.append({
+                "url": post["url"],
+                "brands": brands,
+                "signals": deal["signals"],
+            })
 
-        # Only videos can be scanned for alcohol.
         if post.get("video_url"):
             alc = detect_alcohol(post, client)
             if alc.get("alcohol"):
-                alcohol_posts.append({**post, "_alc": alc})
+                alcohol_details.append({
+                    "url": post["url"],
+                    "confidence": alc.get("confidence"),
+                    "evidence": alc.get("evidence", ""),
+                })
 
     return {
         "username": username,
         "posts_analyzed": len(posts),
-        "deal_count": len(deal_posts),
-        "brands": sorted(deal_brands),
-        "alcohol_count": len(alcohol_posts),
-        "alcohol_urls": [p["url"] for p in alcohol_posts],
-        "deal_urls": [p["url"] for p in deal_posts],
+        "deal_count": len(deal_details),
+        "brands": sorted(all_brands),
+        "alcohol_count": len(alcohol_details),
+        "deal_details": deal_details,
+        "alcohol_details": alcohol_details,
     }
 
 
-def write_report(rows: list[dict]):
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Summary"
-    headers = ["Influencer", "Posts analyzed (12mo)", "Brand-deal posts",
-               "Brands mentioned", "Alcohol videos", "Alcohol post URLs",
-               "Brand-deal post URLs"]
-    ws.append(headers)
-    head_fill = PatternFill("solid", fgColor="222E3C")
+def _style_header(ws):
     for cell in ws[1]:
-        cell.font = Font(bold=True, color="FFFFFF")
-        cell.fill = head_fill
+        cell.font = HEAD_FONT
+        cell.fill = HEAD_FILL
         cell.alignment = Alignment(vertical="top", wrap_text=True)
 
-    for r in rows:
-        ws.append([
-            r["username"],
-            r["posts_analyzed"],
-            r["deal_count"],
-            ", ".join(r["brands"]),
-            r["alcohol_count"],
-            "\n".join(r["alcohol_urls"]),
-            "\n".join(r["deal_urls"]),
-        ])
 
-    widths = [22, 16, 14, 40, 12, 45, 45]
+def _autosize(ws, widths):
     for i, w in enumerate(widths, 1):
         ws.column_dimensions[chr(64 + i)].width = w
     for row in ws.iter_rows(min_row=2):
         for cell in row:
             cell.alignment = Alignment(vertical="top", wrap_text=True)
+
+
+def write_report(rows: list[dict]):
+    wb = Workbook()
+
+    # --- Tab 1: Summary (one row per influencer) ---
+    ws = wb.active
+    ws.title = "Summary"
+    ws.append(["Influencer", "Posts analyzed (12mo)", "Brand-deal posts",
+               "# Brands", "Brands mentioned", "Alcohol videos"])
+    for r in rows:
+        ws.append([r["username"], r["posts_analyzed"], r["deal_count"],
+                   len(r["brands"]), ", ".join(r["brands"]), r["alcohol_count"]])
+    _style_header(ws)
+    _autosize(ws, [22, 16, 14, 9, 60, 12])
+
+    # --- Tab 2: Alcohol detail (one row per flagged post) ---
+    wa = wb.create_sheet("Alcohol detail")
+    wa.append(["Influencer", "Post URL", "Confidence", "Model reasoning"])
+    for r in rows:
+        for a in r["alcohol_details"]:
+            wa.append([r["username"], a["url"], a["confidence"], a["evidence"]])
+    _style_header(wa)
+    _autosize(wa, [22, 48, 12, 60])
+
+    # --- Tab 3: Brand-deal detail (one row per deal post) ---
+    wd = wb.create_sheet("Brand deals detail")
+    wd.append(["Influencer", "Post URL", "Brands", "Signals detected"])
+    for r in rows:
+        for d in r["deal_details"]:
+            wd.append([r["username"], d["url"], ", ".join(d["brands"]),
+                       ", ".join(d["signals"])])
+    _style_header(wd)
+    _autosize(wd, [22, 48, 40, 40])
 
     wb.save(config.OUTPUT_XLSX)
     print(f"\nReport written to {config.OUTPUT_XLSX}")
@@ -98,13 +128,17 @@ def main():
     for i, username in enumerate(profiles, 1):
         print(f"[{i}/{len(profiles)}] {username} ...", flush=True)
         try:
-            rows.append(analyze_profile(username, client))
+            row = analyze_profile(username, client)
+            print(f"    {row['posts_analyzed']} posts | "
+                  f"{row['deal_count']} deals | "
+                  f"{row['alcohol_count']} alcohol videos", flush=True)
+            rows.append(row)
         except Exception:  # noqa: BLE001 - keep going if one profile fails
             print(f"  FAILED: {username}")
             traceback.print_exc()
             rows.append({"username": username, "posts_analyzed": 0,
                          "deal_count": 0, "brands": [], "alcohol_count": 0,
-                         "alcohol_urls": [], "deal_urls": []})
+                         "deal_details": [], "alcohol_details": []})
 
     write_report(rows)
 
