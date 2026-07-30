@@ -14,7 +14,7 @@ ROOT = Path(__file__).parent
 PROFILES_FILE = ROOT / "profiles.txt"
 CACHE_DIR = ROOT / "cache"          # raw scraped JSON, cached per profile
 VIDEO_DIR = ROOT / "cache" / "videos"
-OUTPUT_CSV = ROOT / "influencer_report.csv"
+OUTPUT_HTML = ROOT / "influencer_report.html"
 
 # --- Scraping ---
 # Apify actor that scrapes public Instagram profiles/posts.
@@ -22,7 +22,7 @@ APIFY_ACTOR = "apify/instagram-scraper"
 MONTHS_LOOKBACK = 12                # only analyze posts from the last N months
 MAX_POSTS_PER_PROFILE = 200         # safety cap per profile
 
-# --- Alcohol vision detection ---
+# --- Content vision detection ---
 VISION_MODEL = "claude-sonnet-4-5"  # any Anthropic vision-capable model
 FRAMES_PER_VIDEO = 6                # evenly-sampled frames sent to the model
 FRAME_MAX_WIDTH = 768               # downscale frames before upload (px)

@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Influencer content audit</title>
+<style>
+  :root { --ink:#1a2230; --muted:#6b7280; --line:#e5e9f0; --bg:#f6f8fb; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:1000px; margin:0 auto; padding:32px 20px 80px; }
+  header h1 { margin:0 0 4px; font-size:26px; }
+  header p { margin:0; color:var(--muted); }
+  h2 { margin:0; font-size:20px; }
+  h3 { margin:22px 0 8px; font-size:14px; text-transform:uppercase;
+    letter-spacing:.04em; color:var(--muted); }
+  table { width:100%; border-collapse:collapse; background:#fff; }
+  .summary { margin:20px 0 40px; border:1px solid var(--line); border-radius:12px;
+    overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+  .summary th, .summary td { padding:10px 12px; text-align:center;
+    border-bottom:1px solid var(--line); font-size:14px; }
+  .summary th { background:#1f3a5f; color:#fff; font-weight:600; }
+  .summary td.uname { text-align:left; font-weight:600; }
+  .summary td.hot { background:#fce8e6; color:#b02a37; font-weight:700; }
+  .summary tr:hover td { background:#f0f4fa; }
+  .summary td.hot { /* keep hot color on hover */ }
+  a { color:#1155cc; text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px;
+    padding:22px 24px; margin:0 0 22px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+  .card-head { display:flex; align-items:baseline; justify-content:space-between;
+    flex-wrap:wrap; gap:8px; border-bottom:1px solid var(--line); padding-bottom:12px; }
+  .card-head .ig { font-size:13px; color:var(--muted); }
+  .topstats, .catstats { display:flex; gap:26px; flex-wrap:wrap; margin-top:14px; }
+  .catstats { margin-top:10px; padding-top:12px; border-top:1px dashed var(--line); }
+  .stat { display:flex; flex-direction:column; }
+  .stat .num { font-size:22px; font-weight:700; }
+  .stat .lbl { font-size:12px; color:var(--muted); }
+  table.detail { border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  table.detail th, table.detail td { padding:9px 12px; text-align:left;
+    border-bottom:1px solid var(--line); font-size:14px; vertical-align:top; }
+  table.detail th { background:#f2f5f8; font-weight:600; color:#374151; }
+  td.ev { color:#4b5563; }
+  .badge { display:inline-block; color:#fff; border-radius:999px;
+    padding:2px 10px; font-size:12px; font-weight:600; margin:1px 2px; }
+  .chip { display:inline-block; background:#eef2f7; border:1px solid var(--line);
+    border-radius:6px; padding:2px 9px; margin:2px; font-size:13px; }
+  .deallinks { margin-top:10px; font-size:14px; }
+  .none { color:var(--muted); font-style:italic; }
+  .note { margin-top:40px; font-size:12.5px; color:var(--muted);
+    border-top:1px solid var(--line); padding-top:16px; }
+</style></head>
+<body><div class="wrap">
+  <header>
+    <h1>Influencer content audit</h1>
+    <p>31 profiles · last 12 months · generated Jul 29, 2026 13:58</p>
+  </header>
+
+  <table class="summary">
+    <thead><tr><th>Influencer</th><th>Posts</th><th>Deals</th><th>Brands</th>
+      <th>Flagged</th><th>Drinking</th><th>Smoking</th><th>Partying</th><th>Gambling</th><th>Swearing</th></tr></thead>
+    <tbody><tr><td class="uname"><a href="#foodaholic_ayesha">@foodaholic_ayesha</a></td><td>87</td><td>16</td><td>20</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#tinytrendsbyma">@tinytrendsbyma</a></td><td>199</td><td>35</td><td>18</td><td>6</td><td class="hot">2</td><td class="">0</td><td class="hot">2</td><td class="">0</td><td class="hot">3</td></tr><tr><td class="uname"><a href="#mylittlesecrets_ca">@mylittlesecrets_ca</a></td><td>159</td><td>44</td><td>51</td><td>18</td><td class="hot">16</td><td class="">0</td><td class="hot">2</td><td class="">0</td><td class="hot">1</td></tr><tr><td class="uname"><a href="#rawfitness.raji">@rawfitness.raji</a></td><td>156</td><td>10</td><td>4</td><td>2</td><td class="hot">1</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="hot">1</td></tr><tr><td class="uname"><a href="#nickdemetriadis">@nickdemetriadis</a></td><td>126</td><td>9</td><td>6</td><td>7</td><td class="hot">4</td><td class="">0</td><td class="">0</td><td class="hot">1</td><td class="hot">3</td></tr><tr><td class="uname"><a href="#yowcitystyle">@yowcitystyle</a></td><td>91</td><td>19</td><td>35</td><td>13</td><td class="hot">5</td><td class="">0</td><td class="hot">7</td><td class="">0</td><td class="hot">1</td></tr><tr><td class="uname"><a href="#bakersiu">@bakersiu</a></td><td>172</td><td>10</td><td>5</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#claudiandkaan">@claudiandkaan</a></td><td>113</td><td>11</td><td>31</td><td>20</td><td class="hot">20</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#madswellness">@madswellness</a></td><td>0</td><td>0</td><td>0</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#savingsrn">@savingsrn</a></td><td>97</td><td>27</td><td>58</td><td>1</td><td class="hot">1</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#canspiceitup">@canspiceitup</a></td><td>24</td><td>0</td><td>0</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#marniwasserman">@marniwasserman</a></td><td>39</td><td>1</td><td>1</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#markprata">@markprata</a></td><td>200</td><td>6</td><td>4</td><td>2</td><td class="hot">2</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#twourism">@twourism</a></td><td>37</td><td>3</td><td>6</td><td>2</td><td class="hot">1</td><td class="">0</td><td class="hot">1</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#nicoleandcolton">@nicoleandcolton</a></td><td>0</td><td>0</td><td>0</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#thedillhousemama">@thedillhousemama</a></td><td>0</td><td>0</td><td>0</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#across_continentss">@across_continentss</a></td><td>0</td><td>0</td><td>0</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#travelfoodiejas">@travelfoodiejas</a></td><td>0</td><td>0</td><td>0</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#jahjahbanks">@jahjahbanks</a></td><td>0</td><td>0</td><td>0</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#husbandlifepov">@husbandlifepov</a></td><td>0</td><td>0</td><td>0</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#jehdventures">@jehdventures</a></td><td>68</td><td>7</td><td>21</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#iambishop">@iambishop</a></td><td>144</td><td>21</td><td>28</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#he_whoknocks">@he_whoknocks</a></td><td>182</td><td>12</td><td>23</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#ajourneyinspired">@ajourneyinspired</a></td><td>146</td><td>60</td><td>90</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#the_couponbae">@the_couponbae</a></td><td>198</td><td>24</td><td>25</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#diywithnancyg">@diywithnancyg</a></td><td>64</td><td>22</td><td>0</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#inspiringolivia">@inspiringolivia</a></td><td>166</td><td>57</td><td>84</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#annaspataro">@annaspataro</a></td><td>0</td><td>0</td><td>0</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#agirlnamedhunter">@agirlnamedhunter</a></td><td>200</td><td>0</td><td>0</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#tristianclunis">@tristianclunis</a></td><td>77</td><td>8</td><td>5</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr><tr><td class="uname"><a href="#playingwithapparelmen">@playingwithapparelmen</a></td><td>31</td><td>3</td><td>5</td><td>0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td><td class="">0</td></tr></tbody>
+  </table>
+
+  <a name="foodaholic_ayesha"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@foodaholic_ayesha</h2>
+        <a class="ig" href="https://www.instagram.com/foodaholic_ayesha/" target="_blank">
+          instagram.com/foodaholic_ayesha ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">87</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">16</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">MinaHalal</span> <span class="chip">RBC</span> <span class="chip">bubbleplanetexperience</span> <span class="chip">castrawberries</span> <span class="chip">datenightyyz</span> <span class="chip">fever_global</span> <span class="chip">foodland_on</span> <span class="chip">funthingstoronto</span> <span class="chip">handifood</span> <span class="chip">induscanada</span> <span class="chip">meateorbyhandi</span> <span class="chip">minahalal</span> <span class="chip">minahalalca</span> <span class="chip">narcitycanada</span> <span class="chip">narcitytoronto</span> <span class="chip">rbc</span> <span class="chip">sobeys</span> <span class="chip">usaricecan</span> <span class="chip">yesstyle</span> <span class="chip">zabihahalal</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DaDj42ZO-cI/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/DRXaQxYFV9r/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/DOtPpqPjtd8/" target="_blank">deal 3 ↗</a> · <a href="https://www.instagram.com/p/DWB6rPeDnVj/" target="_blank">deal 4 ↗</a> · <a href="https://www.instagram.com/p/DQZiy16Dqf8/" target="_blank">deal 5 ↗</a> · <a href="https://www.instagram.com/p/DRfEORWkk_I/" target="_blank">deal 6 ↗</a> · <a href="https://www.instagram.com/p/DVbZjBHjqX0/" target="_blank">deal 7 ↗</a> · <a href="https://www.instagram.com/p/DVq2igzEXdN/" target="_blank">deal 8 ↗</a> · <a href="https://www.instagram.com/p/DVBoCzEDgl6/" target="_blank">deal 9 ↗</a> · <a href="https://www.instagram.com/p/DVTuDM_Dgjd/" target="_blank">deal 10 ↗</a> · <a href="https://www.instagram.com/p/DN1A_EhYtpX/" target="_blank">deal 11 ↗</a> · <a href="https://www.instagram.com/p/DUtEBQdjv-9/" target="_blank">deal 12 ↗</a> · <a href="https://www.instagram.com/p/DPeRR09jutK/" target="_blank">deal 13 ↗</a> · <a href="https://www.instagram.com/p/DM8i4wROe9g/" target="_blank">deal 14 ↗</a> · <a href="https://www.instagram.com/p/DN5yyrYjnyD/" target="_blank">deal 15 ↗</a> · <a href="https://www.instagram.com/p/DU3Rj-MjnDD/" target="_blank">deal 16 ↗</a></div>
+    </section><a name="tinytrendsbyma"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@tinytrendsbyma</h2>
+        <a class="ig" href="https://www.instagram.com/tinytrendsbyma/" target="_blank">
+          instagram.com/tinytrendsbyma ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">199</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">35</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">6</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">2</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">2</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">3</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <table class="detail"><thead><tr><th>Flags</th><th>Why (model reasoning)</th><th>Link</th></tr></thead><tbody><tr><td><span class="badge" style="background:#d35400">Partying</span></td><td class="ev">Partying: Graduation celebration with decorations, balloons, cake with &amp;#x27;Congrats&amp;#x27; topper, and party setup</td><td><a href="https://www.instagram.com/p/DaEHSIrIdIZ/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#d35400">Partying</span> <span class="badge" style="background:#2c3e50">Swearing</span></td><td class="ev">Partying: Children&amp;#x27;s birthday party with decorations, balloons, princess performer, cake, and celebration scene; Swearing: On-screen text contains &amp;#x27;the heck&amp;#x27; which is mild profanity</td><td><a href="https://www.instagram.com/p/DbKDa9fMFVh/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#2c3e50">Swearing</span></td><td class="ev">Swearing: The text &amp;#x27;but a ho of all hobbies&amp;#x27; contains profanity in on-screen text</td><td><a href="https://www.instagram.com/p/DYa9lGCMB0O/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Pink cocktails visible in stemmed glasses on the table</td><td><a href="https://www.instagram.com/p/DYH9aVZxfcC/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#2c3e50">Swearing</span></td><td class="ev">Swearing: On-screen text contains &amp;#x27;suck&amp;#x27; in &amp;#x27;I know life would suck without you&amp;#x27;</td><td><a href="https://www.instagram.com/p/DYVt3x4MH_T/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Frame shows a picture frame with &amp;#x27;Dirty Martini&amp;#x27; cocktail illustration and olives visible</td><td><a href="https://www.instagram.com/p/DVHw1F3D2Wi/" target="_blank">view&nbsp;post ↗</a></td></tr></tbody></table>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">adidas</span> <span class="chip">adidasoriginals</span> <span class="chip">aritzia</span> <span class="chip">baskinrobbinscanada</span> <span class="chip">bluejays</span> <span class="chip">cupshe_ca</span> <span class="chip">gummynutritionlab</span> <span class="chip">impressnails</span> <span class="chip">knix</span> <span class="chip">knixambassador</span> <span class="chip">knixambassadors</span> <span class="chip">nadiaandani.style</span> <span class="chip">newchapterinc</span> <span class="chip">onesweetpiece</span> <span class="chip">shapermint</span> <span class="chip">shein_ca</span> <span class="chip">sheinofficial</span> <span class="chip">walmartcanada</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DZ7fCXxo-w5/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/DaRVsUzjFJ0/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/DaLvmjQoz-C/" target="_blank">deal 3 ↗</a> · <a href="https://www.instagram.com/p/DbFBWEIsRQh/" target="_blank">deal 4 ↗</a> · <a href="https://www.instagram.com/p/DZOWZGssrVm/" target="_blank">deal 5 ↗</a> · <a href="https://www.instagram.com/p/DZi6KJoGR-L/" target="_blank">deal 6 ↗</a> · <a href="https://www.instagram.com/p/DZGKci-I9lI/" target="_blank">deal 7 ↗</a> · <a href="https://www.instagram.com/p/DY-6cKsDIaq/" target="_blank">deal 8 ↗</a> · <a href="https://www.instagram.com/p/DY22f2HocGv/" target="_blank">deal 9 ↗</a> · <a href="https://www.instagram.com/p/DYzUla3FoIn/" target="_blank">deal 10 ↗</a> · <a href="https://www.instagram.com/p/DYk3ldTIYSg/" target="_blank">deal 11 ↗</a> · <a href="https://www.instagram.com/p/DYp5Mv9IW2N/" target="_blank">deal 12 ↗</a> · <a href="https://www.instagram.com/p/DYQrTOFjFQn/" target="_blank">deal 13 ↗</a> · <a href="https://www.instagram.com/p/DYLdps0jHW_/" target="_blank">deal 14 ↗</a> · <a href="https://www.instagram.com/p/DXu0VQOo1kp/" target="_blank">deal 15 ↗</a> · <a href="https://www.instagram.com/p/DXxqDPRDMtz/" target="_blank">deal 16 ↗</a> · <a href="https://www.instagram.com/p/DXmCl3Popld/" target="_blank">deal 17 ↗</a> · <a href="https://www.instagram.com/p/DXse3EejBvT/" target="_blank">deal 18 ↗</a> · <a href="https://www.instagram.com/p/DXXmxmTIU8P/" target="_blank">deal 19 ↗</a> · <a href="https://www.instagram.com/p/DW2eTBJDMYp/" target="_blank">deal 20 ↗</a> · <a href="https://www.instagram.com/p/DXLEd1gsV3P/" target="_blank">deal 21 ↗</a> · <a href="https://www.instagram.com/p/DV2INVQjKdo/" target="_blank">deal 22 ↗</a> · <a href="https://www.instagram.com/p/DWUrnlTiBbQ/" target="_blank">deal 23 ↗</a> · <a href="https://www.instagram.com/p/DV7LXmxjH2i/" target="_blank">deal 24 ↗</a> · <a href="https://www.instagram.com/p/DWCFUVBlYzS/" target="_blank">deal 25 ↗</a> · <a href="https://www.instagram.com/p/DWIA-fYjHNi/" target="_blank">deal 26 ↗</a> · <a href="https://www.instagram.com/p/DVwlhOEGSgZ/" target="_blank">deal 27 ↗</a> · <a href="https://www.instagram.com/p/DVFButNjNf9/" target="_blank">deal 28 ↗</a> · <a href="https://www.instagram.com/p/DVEBUm_kcBT/" target="_blank">deal 29 ↗</a> · <a href="https://www.instagram.com/p/DU4eR7MDOkg/" target="_blank">deal 30 ↗</a> · <a href="https://www.instagram.com/p/DUHo0_rDNku/" target="_blank">deal 31 ↗</a> · <a href="https://www.instagram.com/p/DUPG7esDAfy/" target="_blank">deal 32 ↗</a> · <a href="https://www.instagram.com/p/DUjxBW0DMh9/" target="_blank">deal 33 ↗</a> · <a href="https://www.instagram.com/p/DVruj-7jBXI/" target="_blank">deal 34 ↗</a> · <a href="https://www.instagram.com/p/DUiiMmuDVEB/" target="_blank">deal 35 ↗</a></div>
+    </section><a name="mylittlesecrets_ca"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@mylittlesecrets_ca</h2>
+        <a class="ig" href="https://www.instagram.com/mylittlesecrets_ca/" target="_blank">
+          instagram.com/mylittlesecrets_ca ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">159</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">44</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">18</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">16</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">2</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">1</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <table class="detail"><thead><tr><th>Flags</th><th>Why (model reasoning)</th><th>Link</th></tr></thead><tbody><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Text mentions &amp;#x27;sake pairing&amp;#x27; and restaurant scene shows food with what appears to be sake or alcoholic beverages on the table</td><td><a href="https://www.instagram.com/p/DajIZLGutX4/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Multiple alcoholic drinks clearly visible throughout frames - champagne being poured in first frame, wine glasses and what appears to be a cocktail glass in later frames at a restaurant table</td><td><a href="https://www.instagram.com/p/DZlS6-JO5KV/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Multiple bottles of what appear to be champagne or wine visible on decorative wall display and in basket with event materials</td><td><a href="https://www.instagram.com/p/DaB0ionBC2L/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Multiple frames show people at an outdoor cafe with cocktail glasses and alcoholic beverages. The cafe sign visible in frames lists &amp;#x27;Cocktails&amp;#x27; and &amp;#x27;Champagne&amp;#x27; as menu items, and people are clearly holding drinks in cocktail glasses.</td><td><a href="https://www.instagram.com/p/DYN6uwMupaX/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Multiple wine bottles clearly visible on shelves in the French shop/restaurant in first frame</td><td><a href="https://www.instagram.com/p/DY3MaGqux5p/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Empty wine glasses are visible on the table in multiple frames alongside the food spread</td><td><a href="https://www.instagram.com/p/DXsC2K0D1Cc/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#d35400">Partying</span></td><td class="ev">Partying: Group dancing outdoors at night with Eiffel Tower visible, celebratory atmosphere with raised arms and energetic movement</td><td><a href="https://www.instagram.com/p/DX-nLgmuu21/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#2c3e50">Swearing</span></td><td class="ev">Swearing: Text overlay shows &amp;#x27;life would suck&amp;#x27; which contains profanity</td><td><a href="https://www.instagram.com/p/DX7z-t5oup4/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: First frame shows person holding a glass of clear liquid, and frame 5 contains text with wine glass emoji stating &amp;#x27;Our Type A Queen needs a after Toronto traffic&amp;#x27;</td><td><a href="https://www.instagram.com/p/DaEIuqbOyxR/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span> <span class="badge" style="background:#d35400">Partying</span></td><td class="ev">Drinking: Wine glasses visible on tables throughout frames, and a person holding and drinking from a wine glass in frame 2; Partying: Purple/blue nightclub-style lighting, multiple people gathered at decorated tables in an event space with club atmosphere</td><td><a href="https://www.instagram.com/p/DWAO_uYj5J6/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Two cocktails visible in martini/coupe glasses with garnishes at a cafe table</td><td><a href="https://www.instagram.com/p/DXfYzZujhuC/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Cocktail glass visible on table in restaurant scene in frame 5</td><td><a href="https://www.instagram.com/p/DYHrQElB99-/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Champagne bottles visible on table wrapped in towels, appears to be unwrapping/revealing alcoholic beverages</td><td><a href="https://www.instagram.com/p/DR50viIDrBj/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Person holding and drinking from what appears to be a cocktail or beer glass in a restaurant setting</td><td><a href="https://www.instagram.com/p/DRQAGXAj5ch/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Multiple bottles visible on table in background that appear to be wine or liquor bottles</td><td><a href="https://www.instagram.com/p/DRlMjVcDK6Y/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Pink cocktail visible in stemmed glass on the table in frame 6</td><td><a href="https://www.instagram.com/p/DOyZ7laDTZ8/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Wine bottles visible on counter and table, wine glasses present, text mentions &amp;#x27;a glass of wine&amp;#x27;</td><td><a href="https://www.instagram.com/p/DQF4leQj5wP/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Four women are holding and toasting with cocktail glasses containing what appear to be alcoholic beverages</td><td><a href="https://www.instagram.com/p/DSkZ8SRAeqr/" target="_blank">view&nbsp;post ↗</a></td></tr></tbody></table>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">BestBuyCanada</span> <span class="chip">DempstersBakery</span> <span class="chip">Olay</span> <span class="chip">Pedalheads</span> <span class="chip">WalmartCanada</span> <span class="chip">amazonca</span> <span class="chip">atworkwithnat</span> <span class="chip">aveenoca</span> <span class="chip">bestbuycanada</span> <span class="chip">boostnutritioncanada</span> <span class="chip">bostonpizzacanada</span> <span class="chip">bublysparklingca</span> <span class="chip">dempstersbakery</span> <span class="chip">desenio</span> <span class="chip">eloisetoronto</span> <span class="chip">factormealsca</span> <span class="chip">fraicheliving</span> <span class="chip">gladcanada</span> <span class="chip">hellmannscanada</span> <span class="chip">idcdermo</span> <span class="chip">ikeacanada</span> <span class="chip">ingredients_by_saputo</span> <span class="chip">innatbayfortune</span> <span class="chip">joelleanello</span> <span class="chip">kiehlscanada</span> <span class="chip">kitchenaid_ca</span> <span class="chip">kspstuff</span> <span class="chip">legrecoriginal</span> <span class="chip">michaelbuble</span> <span class="chip">myvoguishdiaries</span> <span class="chip">nataliespooner5</span> <span class="chip">neilsondairy</span> <span class="chip">noyolkscanada</span> <span class="chip">oasiscanada</span> <span class="chip">offcanada</span> <span class="chip">officialfarmboy</span> <span class="chip">ogl_move</span> <span class="chip">ogl_move.</span> <span class="chip">olay</span> <span class="chip">orvillecanada</span> <span class="chip">ownr.co</span> <span class="chip">pedalheads</span> <span class="chip">poppy_peonies</span> <span class="chip">sandbankswinery</span> <span class="chip">sharkbeautyca</span> <span class="chip">shoppersbeauty</span> <span class="chip">staplescanada</span> <span class="chip">thiswildheart</span> <span class="chip">toogoodtogo.can</span> <span class="chip">totalenergies_ca</span> <span class="chip">walmartcanada</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DZYmCRbNq80/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/DZ-5G39vyrZ/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/DZV9si9hl9A/" target="_blank">deal 3 ↗</a> · <a href="https://www.instagram.com/p/DZqm1-thnY-/" target="_blank">deal 4 ↗</a> · <a href="https://www.instagram.com/p/DYTKtUzhEAX/" target="_blank">deal 5 ↗</a> · <a href="https://www.instagram.com/p/DY4osNFBz4q/" target="_blank">deal 6 ↗</a> · <a href="https://www.instagram.com/p/DXNjTBaAaHS/" target="_blank">deal 7 ↗</a> · <a href="https://www.instagram.com/p/DXhngUHAQkL/" target="_blank">deal 8 ↗</a> · <a href="https://www.instagram.com/p/DXcynY5jwwc/" target="_blank">deal 9 ↗</a> · <a href="https://www.instagram.com/p/DXsC2K0D1Cc/" target="_blank">deal 10 ↗</a> · <a href="https://www.instagram.com/p/DYlIwpYhD6Q/" target="_blank">deal 11 ↗</a> · <a href="https://www.instagram.com/p/DVKJFIqDz50/" target="_blank">deal 12 ↗</a> · <a href="https://www.instagram.com/p/DVhf1KiAZhp/" target="_blank">deal 13 ↗</a> · <a href="https://www.instagram.com/p/DU02fihgYFo/" target="_blank">deal 14 ↗</a> · <a href="https://www.instagram.com/p/DVw2PNjgTDE/" target="_blank">deal 15 ↗</a> · <a href="https://www.instagram.com/p/DUT4lVJj3dF/" target="_blank">deal 16 ↗</a> · <a href="https://www.instagram.com/p/DUjXTxFD2l3/" target="_blank">deal 17 ↗</a> · <a href="https://www.instagram.com/p/DTwJtufj99K/" target="_blank">deal 18 ↗</a> · <a href="https://www.instagram.com/p/DT9JDH5ATud/" target="_blank">deal 19 ↗</a> · <a href="https://www.instagram.com/p/DTTZ1oJjz1d/" target="_blank">deal 20 ↗</a> · <a href="https://www.instagram.com/p/DTtm7GED75C/" target="_blank">deal 21 ↗</a> · <a href="https://www.instagram.com/p/DUq-AChj8JD/" target="_blank">deal 22 ↗</a> · <a href="https://www.instagram.com/p/DRODtJLjEn6/" target="_blank">deal 23 ↗</a> · <a href="https://www.instagram.com/p/DRQbohnDzBE/" target="_blank">deal 24 ↗</a> · <a href="https://www.instagram.com/p/DRlMjVcDK6Y/" target="_blank">deal 25 ↗</a> · <a href="https://www.instagram.com/p/DWPkmIej-Hw/" target="_blank">deal 26 ↗</a> · <a href="https://www.instagram.com/p/DRa6xoWDDOj/" target="_blank">deal 27 ↗</a> · <a href="https://www.instagram.com/p/DRLaMI7D_i3/" target="_blank">deal 28 ↗</a> · <a href="https://www.instagram.com/p/DRAzUOkDxT1/" target="_blank">deal 29 ↗</a> · <a href="https://www.instagram.com/p/DRdbtx9D8jR/" target="_blank">deal 30 ↗</a> · <a href="https://www.instagram.com/p/DPU-WaiDAXN/" target="_blank">deal 31 ↗</a> · <a href="https://www.instagram.com/p/DQF4leQj5wP/" target="_blank">deal 32 ↗</a> · <a href="https://www.instagram.com/p/DPNKpdyDyi4/" target="_blank">deal 33 ↗</a> · <a href="https://www.instagram.com/p/DQCtAzHD_0x/" target="_blank">deal 34 ↗</a> · <a href="https://www.instagram.com/p/DRvjGLNDJxa/" target="_blank">deal 35 ↗</a> · <a href="https://www.instagram.com/p/DUogxxeD5HI/" target="_blank">deal 36 ↗</a> · <a href="https://www.instagram.com/p/DOQ1fHYDe8r/" target="_blank">deal 37 ↗</a> · <a href="https://www.instagram.com/p/DNOH816R1UT/" target="_blank">deal 38 ↗</a> · <a href="https://www.instagram.com/p/DNolZ46PuF1/" target="_blank">deal 39 ↗</a> · <a href="https://www.instagram.com/p/DQk71ImDKyO/" target="_blank">deal 40 ↗</a> · <a href="https://www.instagram.com/p/DM6j0c_sH_f/" target="_blank">deal 41 ↗</a> · <a href="https://www.instagram.com/p/DM8HiTYx_Jx/" target="_blank">deal 42 ↗</a> · <a href="https://www.instagram.com/p/DQLC5ZNDKUx/" target="_blank">deal 43 ↗</a> · <a href="https://www.instagram.com/p/DN8vZHqj8O4/" target="_blank">deal 44 ↗</a></div>
+    </section><a name="rawfitness.raji"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@rawfitness.raji</h2>
+        <a class="ig" href="https://www.instagram.com/rawfitness.raji/" target="_blank">
+          instagram.com/rawfitness.raji ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">156</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">10</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">2</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">1</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">1</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <table class="detail"><thead><tr><th>Flags</th><th>Why (model reasoning)</th><th>Link</th></tr></thead><tbody><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: First frame shows glasses with ice and what appears to be alcoholic beverages, including what looks like beer or cocktails</td><td><a href="https://www.instagram.com/p/DVRbI1iEdse/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#2c3e50">Swearing</span></td><td class="ev">Swearing: Frame 2 contains the text &amp;#x27;Scared sh*tless?&amp;#x27; with asterisk-censored profanity visible in on-screen caption</td><td><a href="https://www.instagram.com/p/DNlRxz_O2hQ/" target="_blank">view&nbsp;post ↗</a></td></tr></tbody></table>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">goofythegoldendood</span> <span class="chip">photos.by.krish</span> <span class="chip">rawfitness.kirn</span> <span class="chip">rawfitnessmississauga</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DRahpcNEcws/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/DYm35t4gMkc/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/DXrv2k7AEgX/" target="_blank">deal 3 ↗</a> · <a href="https://www.instagram.com/p/DW1P7ocldjp/" target="_blank">deal 4 ↗</a> · <a href="https://www.instagram.com/p/DW9nTs0GnKd/" target="_blank">deal 5 ↗</a> · <a href="https://www.instagram.com/p/DT2xCgmAHUu/" target="_blank">deal 6 ↗</a> · <a href="https://www.instagram.com/p/DSnB46WgEsV/" target="_blank">deal 7 ↗</a> · <a href="https://www.instagram.com/p/DTI2m2kEYuN/" target="_blank">deal 8 ↗</a> · <a href="https://www.instagram.com/p/DS8PI9qERfZ/" target="_blank">deal 9 ↗</a> · <a href="https://www.instagram.com/p/DNVzBW8OoOc/" target="_blank">deal 10 ↗</a></div>
+    </section><a name="nickdemetriadis"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@nickdemetriadis</h2>
+        <a class="ig" href="https://www.instagram.com/nickdemetriadis/" target="_blank">
+          instagram.com/nickdemetriadis ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">126</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">9</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">7</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">4</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">1</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">3</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <table class="detail"><thead><tr><th>Flags</th><th>Why (model reasoning)</th><th>Link</th></tr></thead><tbody><tr><td><span class="badge" style="background:#2c3e50">Swearing</span></td><td class="ev">Swearing: The word &amp;#x27;shit&amp;#x27; appears in on-screen text in frame 3</td><td><a href="https://www.instagram.com/p/DYxSdKaOJ6j/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Glass with &amp;#x27;porter&amp;#x27; label containing beer visible in frame 2, indicating alcoholic beverage</td><td><a href="https://www.instagram.com/p/DWl_mJ_DrgS/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#2c3e50">Swearing</span></td><td class="ev">Swearing: Frame shows text &amp;#x27;F*cking hospital&amp;#x27; with profanity visible in on-screen caption</td><td><a href="https://www.instagram.com/p/DWfcff1Dm5R/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Multiple bottles visible on a bar cart/table in the background of the living room</td><td><a href="https://www.instagram.com/p/DSST1NgjlYY/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#2c3e50">Swearing</span></td><td class="ev">Swearing: Text visible on screen reads &amp;#x27;say your stupid line&amp;#x27; which contains &amp;#x27;stupid&amp;#x27; as potentially offensive language</td><td><a href="https://www.instagram.com/p/DSF5saKj972/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Text references &amp;#x27;got home drunk at 3 am&amp;#x27;</td><td><a href="https://www.instagram.com/p/DQ2q_0xD4a5/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span> <span class="badge" style="background:#16704a">Gambling</span></td><td class="ev">Drinking: Red bottle visible on table in studio scene in final frame; Gambling: First two frames show person outside what appears to be the Bellagio casino/hotel in Las Vegas</td><td><a href="https://www.instagram.com/p/DPcVOtKDxOc/" target="_blank">view&nbsp;post ↗</a></td></tr></tbody></table>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">clutch.ca</span> <span class="chip">energybird.ca</span> <span class="chip">factormealsca</span> <span class="chip">mightyproteincanada</span> <span class="chip">oakleymeta</span> <span class="chip">porterairlines</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DbGeyAqvKad/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/DaVjAvkhmjp/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/DaDe0Igu4bj/" target="_blank">deal 3 ↗</a> · <a href="https://www.instagram.com/p/DYxSdKaOJ6j/" target="_blank">deal 4 ↗</a> · <a href="https://www.instagram.com/p/DWl_mJ_DrgS/" target="_blank">deal 5 ↗</a> · <a href="https://www.instagram.com/p/DWRnkaBDnU-/" target="_blank">deal 6 ↗</a> · <a href="https://www.instagram.com/p/DTlLCnij6VS/" target="_blank">deal 7 ↗</a> · <a href="https://www.instagram.com/p/DYKlzxhOsix/" target="_blank">deal 8 ↗</a> · <a href="https://www.instagram.com/p/DSLB0tDj35z/" target="_blank">deal 9 ↗</a></div>
+    </section><a name="yowcitystyle"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@yowcitystyle</h2>
+        <a class="ig" href="https://www.instagram.com/yowcitystyle/" target="_blank">
+          instagram.com/yowcitystyle ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">91</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">19</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">13</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">5</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">7</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">1</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <table class="detail"><thead><tr><th>Flags</th><th>Why (model reasoning)</th><th>Link</th></tr></thead><tbody><tr><td><span class="badge" style="background:#d35400">Partying</span></td><td class="ev">Partying: Ottawa Jazz Festival concert scene with stage, performers, crowd, and nighttime celebration atmosphere</td><td><a href="https://www.instagram.com/p/DZxnZyExSjn/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#d35400">Partying</span></td><td class="ev">Partying: Concert/event venue with large crowds, stage lighting, confetti, pyrotechnics, and people celebrating with raised hands</td><td><a href="https://www.instagram.com/p/DZ2Yk4BloFl/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Frame shows &amp;#x27;The Brig Pub&amp;#x27; establishment with outdoor patio seating, which is an alcohol-serving venue</td><td><a href="https://www.instagram.com/p/DaBUfZpxygG/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#d35400">Partying</span></td><td class="ev">Partying: Multiple frames show large concert/festival scenes with crowds, stage lighting, pyrotechnics, and &amp;#x27;igloofest&amp;#x27; festival signage indicating nightlife entertainment event</td><td><a href="https://www.instagram.com/p/DToOSMHkZti/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: First frame shows person with what appears to be a cocktail with garnish in copper mug, and frame 4 shows a bar with extensive liquor bottles displayed on shelves</td><td><a href="https://www.instagram.com/p/DTtgi_gkRik/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#2c3e50">Swearing</span></td><td class="ev">Swearing: The text &amp;#x27;get the damn ticket&amp;#x27; contains profanity visible in on-screen captions</td><td><a href="https://www.instagram.com/p/DYevAMXOfgD/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#d35400">Partying</span></td><td class="ev">Partying: New Year&amp;#x27;s celebration with fireworks, red lighting, crowds of people gathered outdoors in festive atmosphere</td><td><a href="https://www.instagram.com/p/DS-mSvYkUMs/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Frame 4 shows a person consuming what appears to be an oyster with a copper mug cocktail visible on the table, which is typically used for alcoholic beverages like Moscow Mules</td><td><a href="https://www.instagram.com/p/DTlkqg_ESzo/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Text mentions &amp;#x27;swap dinner and drinks&amp;#x27; indicating alcohol consumption context</td><td><a href="https://www.instagram.com/p/DNWX9oQuMi9/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#d35400">Partying</span></td><td class="ev">Partying: Concert/performance with stage lighting, crowd with phones, and celebratory atmosphere</td><td><a href="https://www.instagram.com/p/DM8M5dUsxZy/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Wine bottles and wine glasses visible on table in final frame</td><td><a href="https://www.instagram.com/p/DPTgAlhDn-z/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#d35400">Partying</span></td><td class="ev">Partying: Large crowd gathered in venue with stage lighting, purple/pink ambiance, people waving items and celebrating at what appears to be a &amp;#x27;Fight for the Cure&amp;#x27; charity event</td><td><a href="https://www.instagram.com/p/DP_4x_Bjq5B/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#d35400">Partying</span></td><td class="ev">Partying: Concert/performance venue with stage lighting, crowds, and nighttime event atmosphere visible in multiple frames</td><td><a href="https://www.instagram.com/p/DN0oH5U3MuT/" target="_blank">view&nbsp;post ↗</a></td></tr></tbody></table>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">SharkHomeCA</span> <span class="chip">WestJet</span> <span class="chip">autocanadainc</span> <span class="chip">beam.glowbar</span> <span class="chip">corarestaurants</span> <span class="chip">desjardinscoop</span> <span class="chip">desjardinsgroup</span> <span class="chip">drinkstarmount</span> <span class="chip">finelinetravels</span> <span class="chip">friendlyfuturefoundation</span> <span class="chip">huntclubnissan</span> <span class="chip">intheglebe</span> <span class="chip">loen.artist</span> <span class="chip">loen.design</span> <span class="chip">lululemon</span> <span class="chip">merrymaidsofottawa</span> <span class="chip">merrymaidsofottawa.</span> <span class="chip">myskylight</span> <span class="chip">nac.cna</span> <span class="chip">nac.cna...and</span> <span class="chip">niveacanada</span> <span class="chip">oasiscanada</span> <span class="chip">ottawaracewknd</span> <span class="chip">playful.mindset</span> <span class="chip">runottawa</span> <span class="chip">salon_des_bananes</span> <span class="chip">sasha.arrage</span> <span class="chip">sharkhomeca</span> <span class="chip">showponyhair</span> <span class="chip">sophiashowpony</span> <span class="chip">telus</span> <span class="chip">viarailcanada</span> <span class="chip">westjet</span> <span class="chip">whereithriveccc</span> <span class="chip">yowcitysold</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DaL6njzxmpw/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/DZFJNjdxGao/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/DYXgWfFx-My/" target="_blank">deal 3 ↗</a> · <a href="https://www.instagram.com/p/DYhNpfiOw_B/" target="_blank">deal 4 ↗</a> · <a href="https://www.instagram.com/p/DWL9fQSjiGs/" target="_blank">deal 5 ↗</a> · <a href="https://www.instagram.com/p/DWKIN0sEWuE/" target="_blank">deal 6 ↗</a> · <a href="https://www.instagram.com/p/DUGgyNYkcUA/" target="_blank">deal 7 ↗</a> · <a href="https://www.instagram.com/p/DU_jFAdkfhL/" target="_blank">deal 8 ↗</a> · <a href="https://www.instagram.com/p/DSNGii3Dphc/" target="_blank">deal 9 ↗</a> · <a href="https://www.instagram.com/p/DRj1qV7DnDw/" target="_blank">deal 10 ↗</a> · <a href="https://www.instagram.com/p/DQwYjBzEVdl/" target="_blank">deal 11 ↗</a> · <a href="https://www.instagram.com/p/DRU27fbiUA5/" target="_blank">deal 12 ↗</a> · <a href="https://www.instagram.com/p/DOWzHUPEZpq/" target="_blank">deal 13 ↗</a> · <a href="https://www.instagram.com/p/DOZQ54cEaKQ/" target="_blank">deal 14 ↗</a> · <a href="https://www.instagram.com/p/DQYCOWREfg0/" target="_blank">deal 15 ↗</a> · <a href="https://www.instagram.com/p/DRE_oDEDvHQ/" target="_blank">deal 16 ↗</a> · <a href="https://www.instagram.com/p/DNWX9oQuMi9/" target="_blank">deal 17 ↗</a> · <a href="https://www.instagram.com/p/DOLX767jk9T/" target="_blank">deal 18 ↗</a> · <a href="https://www.instagram.com/p/DQCaYaxDosH/" target="_blank">deal 19 ↗</a></div>
+    </section><a name="bakersiu"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@bakersiu</h2>
+        <a class="ig" href="https://www.instagram.com/bakersiu/" target="_blank">
+          instagram.com/bakersiu ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">172</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">10</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">channelcosu</span> <span class="chip">chefannaolson</span> <span class="chip">cindyliangevents</span> <span class="chip">daango.yvr</span> <span class="chip">daangocakelab</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DZYGLlAPKnn/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/DXplO6BiV_p/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/DYXQu6qCtuN/" target="_blank">deal 3 ↗</a> · <a href="https://www.instagram.com/p/DXr0vVKFMlU/" target="_blank">deal 4 ↗</a> · <a href="https://www.instagram.com/p/DS5IrdPgNDN/" target="_blank">deal 5 ↗</a> · <a href="https://www.instagram.com/p/DSrAuufjCdz/" target="_blank">deal 6 ↗</a> · <a href="https://www.instagram.com/p/DR5N8DoEayk/" target="_blank">deal 7 ↗</a> · <a href="https://www.instagram.com/p/DRS1m3Uko8j/" target="_blank">deal 8 ↗</a> · <a href="https://www.instagram.com/p/DOXC7iRj401/" target="_blank">deal 9 ↗</a> · <a href="https://www.instagram.com/p/DOjTHKXCYSA/" target="_blank">deal 10 ↗</a></div>
+    </section><a name="claudiandkaan"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@claudiandkaan</h2>
+        <a class="ig" href="https://www.instagram.com/claudiandkaan/" target="_blank">
+          instagram.com/claudiandkaan ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">113</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">11</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">20</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">20</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <table class="detail"><thead><tr><th>Flags</th><th>Why (model reasoning)</th><th>Link</th></tr></thead><tbody><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Man holding and toasting with two wine glasses containing what appears to be rosé or cocktails at a beach club</td><td><a href="https://www.instagram.com/p/DaOBEC5RpAA/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Sign visible in frame 4 advertising &amp;#x27;1/2 PRICE COCKTAILS&amp;#x27;</td><td><a href="https://www.instagram.com/p/DbLVWv2xuSY/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Glass of wine visible in steak dinner frame and pink beverage in trattoria lunch frame</td><td><a href="https://www.instagram.com/p/DYSlj48RUhj/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Multiple wine glasses and wine tasting flights clearly visible at wineries, including red and white wine in glasses at Sprucewood Shores, North 42 Degrees, and Crew Winery</td><td><a href="https://www.instagram.com/p/DYel_o-qhjP/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Orange-colored beverages in cocktail glasses visible on table in multiple frames, appearing to be alcoholic cocktails</td><td><a href="https://www.instagram.com/p/DWB3_WICFpe/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Wine glasses with red wine clearly visible in frames 1 and 2 during steak dinner scene</td><td><a href="https://www.instagram.com/p/DV_W4kYCKbK/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Wine glasses visible on table in multiple frames, including frame 2 where couple is toasting with wine glasses, and frame 3 showing wine glass on table</td><td><a href="https://www.instagram.com/p/DVEPzjrkdW2/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Multiple alcoholic beverages visible including a red cocktail with ice in first frame and clear drinks, person is shown drinking from glass on airplane</td><td><a href="https://www.instagram.com/p/DSS37Ekk4ta/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Last frame shows two people holding what appear to be red cocktails in stemmed glasses at a bar with bottles visible in background</td><td><a href="https://www.instagram.com/p/DTBgv6eESbo/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: First frame shows person holding a glass with red/orange alcoholic beverage with a straw</td><td><a href="https://www.instagram.com/p/DXhivVXkeue/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Wine glasses with clear liquid visible being held by both individuals throughout multiple frames</td><td><a href="https://www.instagram.com/p/DTI3hw_kWVT/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Person holding champagne glass in New Year&amp;#x27;s Eve outfit frame</td><td><a href="https://www.instagram.com/p/DRp_YgDkVKl/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Multiple cocktails clearly visible including dark colored drink and light colored cocktail, with text mentioning &amp;#x27;festive cocktails&amp;#x27; and wine glasses on table</td><td><a href="https://www.instagram.com/p/DSIZrcMCE4X/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Wine glasses visible on dining table and bar setup with bottles in background</td><td><a href="https://www.instagram.com/p/DQ1-EsQEWbg/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Wine bottle visible on counter in first frame</td><td><a href="https://www.instagram.com/p/DQZTDUAEeF7/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Wine bottle pouring into multiple wine glasses at Bella Terra Vineyards, vineyard/wine tasting setting clearly visible</td><td><a href="https://www.instagram.com/p/DRuiQpeEe8Q/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Person holding champagne flute in multiple frames, with caption &amp;#x27;to help me calm my nerves&amp;#x27;</td><td><a href="https://www.instagram.com/p/DPMQeWLkVOF/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Wine glasses with wine visible in multiple frames at Queenston Mile Vineyard, wine bottle on table</td><td><a href="https://www.instagram.com/p/DN6BF14ER0l/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Champagne bottle visible being poured and glasses of champagne held by couple celebrating anniversary</td><td><a href="https://www.instagram.com/p/DOUECVCkccL/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Wine glass visible on dining table in frame 5, and what appears to be alcoholic beverages in cans visible on the same table</td><td><a href="https://www.instagram.com/p/DNf7vC6uFTp/" target="_blank">view&nbsp;post ↗</a></td></tr></tbody></table>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">Markscanada</span> <span class="chip">bartroveca</span> <span class="chip">bernadettes104</span> <span class="chip">bibostrathcona</span> <span class="chip">bikinivillage</span> <span class="chip">bodegabysabor</span> <span class="chip">canadiantire</span> <span class="chip">canadiantire.</span> <span class="chip">canadiantirefr</span> <span class="chip">commense.official</span> <span class="chip">commense.official.</span> <span class="chip">dorinkuosaka</span> <span class="chip">edmfolkfest</span> <span class="chip">edmontons_best_hotels</span> <span class="chip">exploreedmonton</span> <span class="chip">fairmontmac</span> <span class="chip">fortedmontonpark</span> <span class="chip">landscapedirect</span> <span class="chip">lonelyplanet</span> <span class="chip">markscanada</span> <span class="chip">markscanada.</span> <span class="chip">oldstrathcona</span> <span class="chip">oldstrathcona.</span> <span class="chip">rivervalleyadventureyeg</span> <span class="chip">rizziandrizzi</span> <span class="chip">royal_alberta_museum</span> <span class="chip">travelalberta</span> <span class="chip">trianglerewards</span> <span class="chip">veritascomm</span> <span class="chip">vivaslices_pizza</span> <span class="chip">yegstreetcar</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DbIchTMxVPY/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/DZhx2foReGr/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/DWB3_WICFpe/" target="_blank">deal 3 ↗</a> · <a href="https://www.instagram.com/p/DaLS0vnxCtO/" target="_blank">deal 4 ↗</a> · <a href="https://www.instagram.com/p/DUqaF6diNgV/" target="_blank">deal 5 ↗</a> · <a href="https://www.instagram.com/p/DR0Sk0fCAas/" target="_blank">deal 6 ↗</a> · <a href="https://www.instagram.com/p/DQw1q9akTk9/" target="_blank">deal 7 ↗</a> · <a href="https://www.instagram.com/p/DPyzV-TkXKX/" target="_blank">deal 8 ↗</a> · <a href="https://www.instagram.com/p/DQZTDUAEeF7/" target="_blank">deal 9 ↗</a> · <a href="https://www.instagram.com/p/DO_GrB7CHmx/" target="_blank">deal 10 ↗</a> · <a href="https://www.instagram.com/p/DNf7vC6uFTp/" target="_blank">deal 11 ↗</a></div>
+    </section><a name="madswellness"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@madswellness</h2>
+        <a class="ig" href="https://www.instagram.com/madswellness/" target="_blank">
+          instagram.com/madswellness ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <p class="none">No brand deals detected.</p>
+    </section><a name="savingsrn"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@savingsrn</h2>
+        <a class="ig" href="https://www.instagram.com/savingsrn/" target="_blank">
+          instagram.com/savingsrn ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">97</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">27</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">1</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">1</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <table class="detail"><thead><tr><th>Flags</th><th>Why (model reasoning)</th><th>Link</th></tr></thead><tbody><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Hand sanitizer bottles display cocktail glass and drink imagery on their packaging</td><td><a href="https://www.instagram.com/p/DYBSM-ENYuf/" target="_blank">view&nbsp;post ↗</a></td></tr></tbody></table>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">WayfairCanada</span> <span class="chip">always_brand</span> <span class="chip">bestbuycanada</span> <span class="chip">bluelizardsunscreen.ca</span> <span class="chip">brevillecanada</span> <span class="chip">cactusclubcafe</span> <span class="chip">canoncanada</span> <span class="chip">cineplexmovies</span> <span class="chip">citycruisescanada</span> <span class="chip">coldplay</span> <span class="chip">dawndishwash</span> <span class="chip">doordash_ca</span> <span class="chip">eat.amano</span> <span class="chip">eosproducts</span> <span class="chip">excelgumca</span> <span class="chip">febreze</span> <span class="chip">freshcogrocery</span> <span class="chip">garniercan</span> <span class="chip">greenmobilecanada</span> <span class="chip">heinz_ca</span> <span class="chip">herocosmetics_ca</span> <span class="chip">hydrosilkca</span> <span class="chip">jaydeals</span> <span class="chip">kaytranada</span> <span class="chip">liquidivcanada</span> <span class="chip">mosmoscoffee</span> <span class="chip">mrclean</span> <span class="chip">mycascade</span> <span class="chip">narcitycanada</span> <span class="chip">nespresso.ca</span> <span class="chip">nintendoamerica</span> <span class="chip">nintendoswitches</span> <span class="chip">niveacanada</span> <span class="chip">ouraring</span> <span class="chip">oxo</span> <span class="chip">partyaire</span> <span class="chip">partycitycanada</span> <span class="chip">pg.brandsaver.ca</span> <span class="chip">porternovelli</span> <span class="chip">prestocard</span> <span class="chip">proctergamble</span> <span class="chip">purellbrand</span> <span class="chip">rogers_stadium</span> <span class="chip">samsungcanada</span> <span class="chip">sharkbeautyca</span> <span class="chip">swiffer</span> <span class="chip">theweeknd</span> <span class="chip">tidelaundry</span> <span class="chip">timhortons</span> <span class="chip">tinecoglobal</span> <span class="chip">torontounion</span> <span class="chip">trestellecheese</span> <span class="chip">tums_ca</span> <span class="chip">walmartcanada</span> <span class="chip">wayfaircanada</span> <span class="chip">yrf</span> <span class="chip">zenogroupcanada</span> <span class="chip">zwilling_ca</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DZ8N0BBpAU0/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/DZu9RLsJloR/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/DZAs5HSJcr-/" target="_blank">deal 3 ↗</a> · <a href="https://www.instagram.com/p/DYNrqAapISN/" target="_blank">deal 4 ↗</a> · <a href="https://www.instagram.com/p/DXs0kfUjcFt/" target="_blank">deal 5 ↗</a> · <a href="https://www.instagram.com/p/DUI1YJIDo5I/" target="_blank">deal 6 ↗</a> · <a href="https://www.instagram.com/p/DWaGCZYCZ4c/" target="_blank">deal 7 ↗</a> · <a href="https://www.instagram.com/p/DWBiIR9jtuh/" target="_blank">deal 8 ↗</a> · <a href="https://www.instagram.com/p/DXXo_0PiW49/" target="_blank">deal 9 ↗</a> · <a href="https://www.instagram.com/p/DTRJm-TieFR/" target="_blank">deal 10 ↗</a> · <a href="https://www.instagram.com/p/DSu1nZsDpBK/" target="_blank">deal 11 ↗</a> · <a href="https://www.instagram.com/p/DRuQIrmjXBj/" target="_blank">deal 12 ↗</a> · <a href="https://www.instagram.com/p/DRf3FXUDZg5/" target="_blank">deal 13 ↗</a> · <a href="https://www.instagram.com/p/DRSSVtGDm-d/" target="_blank">deal 14 ↗</a> · <a href="https://www.instagram.com/p/DRfGEEgDpLe/" target="_blank">deal 15 ↗</a> · <a href="https://www.instagram.com/p/DQ2Dsi7Dj2N/" target="_blank">deal 16 ↗</a> · <a href="https://www.instagram.com/p/DRVgKwPDXol/" target="_blank">deal 17 ↗</a> · <a href="https://www.instagram.com/p/DVt6HQTE39m/" target="_blank">deal 18 ↗</a> · <a href="https://www.instagram.com/p/DPKKZO6DnK_/" target="_blank">deal 19 ↗</a> · <a href="https://www.instagram.com/p/DQUgFrIjnhC/" target="_blank">deal 20 ↗</a> · <a href="https://www.instagram.com/p/DQR9r10DpuF/" target="_blank">deal 21 ↗</a> · <a href="https://www.instagram.com/p/DPe2aoPjn7H/" target="_blank">deal 22 ↗</a> · <a href="https://www.instagram.com/p/DNWO8GZOQvT/" target="_blank">deal 23 ↗</a> · <a href="https://www.instagram.com/p/DQR0IBiDhSs/" target="_blank">deal 24 ↗</a> · <a href="https://www.instagram.com/p/DPBP9Xejr3z/" target="_blank">deal 25 ↗</a> · <a href="https://www.instagram.com/p/DNTeBNiunz0/" target="_blank">deal 26 ↗</a> · <a href="https://www.instagram.com/p/DNDn3j-OYV4/" target="_blank">deal 27 ↗</a></div>
+    </section><a name="canspiceitup"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@canspiceitup</h2>
+        <a class="ig" href="https://www.instagram.com/canspiceitup/" target="_blank">
+          instagram.com/canspiceitup ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">24</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <p class="none">No brand deals detected.</p>
+    </section><a name="marniwasserman"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@marniwasserman</h2>
+        <a class="ig" href="https://www.instagram.com/marniwasserman/" target="_blank">
+          instagram.com/marniwasserman ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">39</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">1</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">deuxpardeuxkids</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DN8Yd-EDZou/" target="_blank">deal 1 ↗</a></div>
+    </section><a name="markprata"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@markprata</h2>
+        <a class="ig" href="https://www.instagram.com/markprata/" target="_blank">
+          instagram.com/markprata ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">200</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">6</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">2</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">2</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <table class="detail"><thead><tr><th>Flags</th><th>Why (model reasoning)</th><th>Link</th></tr></thead><tbody><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Person holding a glass containing what appears to be a cocktail with lime garnish in an indoor setting</td><td><a href="https://www.instagram.com/p/DYnvQtDBcKD/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Wine bottles visible on kitchen counter in background</td><td><a href="https://www.instagram.com/p/DYCcds2uDad/" target="_blank">view&nbsp;post ↗</a></td></tr></tbody></table>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">cabinetcraftanddesign</span> <span class="chip">lorraineprata</span> <span class="chip">teampratarealestate</span> <span class="chip">thecottagecrew26</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DPOipDFE8_i/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/DYyEuFjsWNb/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/DZCldtLk2AW/" target="_blank">deal 3 ↗</a> · <a href="https://www.instagram.com/p/DZ5fzXhPArW/" target="_blank">deal 4 ↗</a> · <a href="https://www.instagram.com/p/DWHJHbWjt3a/" target="_blank">deal 5 ↗</a> · <a href="https://www.instagram.com/p/DRUltw_EZU5/" target="_blank">deal 6 ↗</a></div>
+    </section><a name="twourism"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@twourism</h2>
+        <a class="ig" href="https://www.instagram.com/twourism/" target="_blank">
+          instagram.com/twourism ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">37</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">3</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">2</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">1</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">1</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <table class="detail"><thead><tr><th>Flags</th><th>Why (model reasoning)</th><th>Link</th></tr></thead><tbody><tr><td><span class="badge" style="background:#d35400">Partying</span></td><td class="ev">Partying: Frame shows nighttime pool party scene with crowds, dancing, pink/purple lighting, and night entertainment</td><td><a href="https://www.instagram.com/p/DXsIeUEALk9/" target="_blank">view&nbsp;post ↗</a></td></tr><tr><td><span class="badge" style="background:#c0392b">Drinking</span></td><td class="ev">Drinking: Cocktail glass with garnish visible in frame 2, bar with bottles visible in background of frame 6</td><td><a href="https://www.instagram.com/p/DR26sgsgACJ/" target="_blank">view&nbsp;post ↗</a></td></tr></tbody></table>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">costco_canada</span> <span class="chip">costcomarkhameast</span> <span class="chip">narcitycanada</span> <span class="chip">raybanmeta</span> <span class="chip">scarboroughspots</span> <span class="chip">visitmississauga</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DZtBBLlgN7Z/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/DPUpE_nAbzx/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/DWA4jrgDr4S/" target="_blank">deal 3 ↗</a></div>
+    </section><a name="nicoleandcolton"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@nicoleandcolton</h2>
+        <a class="ig" href="https://www.instagram.com/nicoleandcolton/" target="_blank">
+          instagram.com/nicoleandcolton ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <p class="none">No brand deals detected.</p>
+    </section><a name="thedillhousemama"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@thedillhousemama</h2>
+        <a class="ig" href="https://www.instagram.com/thedillhousemama/" target="_blank">
+          instagram.com/thedillhousemama ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <p class="none">No brand deals detected.</p>
+    </section><a name="across_continentss"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@across_continentss</h2>
+        <a class="ig" href="https://www.instagram.com/across_continentss/" target="_blank">
+          instagram.com/across_continentss ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <p class="none">No brand deals detected.</p>
+    </section><a name="travelfoodiejas"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@travelfoodiejas</h2>
+        <a class="ig" href="https://www.instagram.com/travelfoodiejas/" target="_blank">
+          instagram.com/travelfoodiejas ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <p class="none">No brand deals detected.</p>
+    </section><a name="jahjahbanks"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@jahjahbanks</h2>
+        <a class="ig" href="https://www.instagram.com/jahjahbanks/" target="_blank">
+          instagram.com/jahjahbanks ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <p class="none">No brand deals detected.</p>
+    </section><a name="husbandlifepov"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@husbandlifepov</h2>
+        <a class="ig" href="https://www.instagram.com/husbandlifepov/" target="_blank">
+          instagram.com/husbandlifepov ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <p class="none">No brand deals detected.</p>
+    </section><a name="jehdventures"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@jehdventures</h2>
+        <a class="ig" href="https://www.instagram.com/jehdventures/" target="_blank">
+          instagram.com/jehdventures ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">68</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">7</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">Indigospiritdonmills</span> <span class="chip">bgccan</span> <span class="chip">canadiantire</span> <span class="chip">cbc</span> <span class="chip">cbcgem</span> <span class="chip">cfshopsdonmills</span> <span class="chip">cftoeatoncentre</span> <span class="chip">clarkinfluence</span> <span class="chip">clarkinfluence_toronto</span> <span class="chip">dairyfarmersofcanada</span> <span class="chip">filipinosinthe6ix</span> <span class="chip">guardianpharmacycanada</span> <span class="chip">indigo</span> <span class="chip">indigokids</span> <span class="chip">indigospiritdonmills</span> <span class="chip">lullabyearth</span> <span class="chip">ontario4u.promotions</span> <span class="chip">playdiumca</span> <span class="chip">theunstoppablejennygarcia</span> <span class="chip">thisisbutterly</span> <span class="chip">yyzdateideas</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DZdcCC6v46w/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/DQesY5_jnzF/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/DOJxkSAD-GI/" target="_blank">deal 3 ↗</a> · <a href="https://www.instagram.com/p/DQm8lMRD-f7/" target="_blank">deal 4 ↗</a> · <a href="https://www.instagram.com/p/DO_MCz3DSUT/" target="_blank">deal 5 ↗</a> · <a href="https://www.instagram.com/p/DRK0IrKD052/" target="_blank">deal 6 ↗</a> · <a href="https://www.instagram.com/p/DOowvp2jyLe/" target="_blank">deal 7 ↗</a></div>
+    </section><a name="iambishop"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@iambishop</h2>
+        <a class="ig" href="https://www.instagram.com/iambishop/" target="_blank">
+          instagram.com/iambishop ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">144</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">21</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">9round_thornhill_on</span> <span class="chip">9roundbarrhaven</span> <span class="chip">adrianbertiee</span> <span class="chip">andread1707</span> <span class="chip">breakfasttelevision</span> <span class="chip">dina.pugliese</span> <span class="chip">evolvemagazinecanada</span> <span class="chip">hondamotoca</span> <span class="chip">itsdevobrown</span> <span class="chip">jessicasturrup_</span> <span class="chip">jogajana</span> <span class="chip">keen</span> <span class="chip">keencanada</span> <span class="chip">marckielburger</span> <span class="chip">mingalodge</span> <span class="chip">patrickcapati</span> <span class="chip">patrickcapati.</span> <span class="chip">sampark_training</span> <span class="chip">stluciaisparadise</span> <span class="chip">stonefieldvillaresort</span> <span class="chip">thinkfitnesstoronto</span> <span class="chip">timbolen</span> <span class="chip">timcookmd</span> <span class="chip">trailtours</span> <span class="chip">trevor_close</span> <span class="chip">tsigroupltd</span> <span class="chip">vladfitness24</span> <span class="chip">wyldeonhealth</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DaSxG0XkRxr/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/DaD2a_VDIWp/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/DYqQohfjsaZ/" target="_blank">deal 3 ↗</a> · <a href="https://www.instagram.com/p/DXFq2SmEVtu/" target="_blank">deal 4 ↗</a> · <a href="https://www.instagram.com/p/DZBHc36Gp1A/" target="_blank">deal 5 ↗</a> · <a href="https://www.instagram.com/p/DWhnw1PAXRH/" target="_blank">deal 6 ↗</a> · <a href="https://www.instagram.com/p/DW-P4c8lD1f/" target="_blank">deal 7 ↗</a> · <a href="https://www.instagram.com/p/DWsOUrbAo3y/" target="_blank">deal 8 ↗</a> · <a href="https://www.instagram.com/p/DWXVyN8gQcA/" target="_blank">deal 9 ↗</a> · <a href="https://www.instagram.com/p/DWARxkQDj-c/" target="_blank">deal 10 ↗</a> · <a href="https://www.instagram.com/p/DV3mNkxjoSB/" target="_blank">deal 11 ↗</a> · <a href="https://www.instagram.com/p/DV_4rpaD2cm/" target="_blank">deal 12 ↗</a> · <a href="https://www.instagram.com/p/DUv2R0Igftg/" target="_blank">deal 13 ↗</a> · <a href="https://www.instagram.com/p/DSAvaAYiYQG/" target="_blank">deal 14 ↗</a> · <a href="https://www.instagram.com/p/DRf9AScESkT/" target="_blank">deal 15 ↗</a> · <a href="https://www.instagram.com/p/DQ-a37bAYOe/" target="_blank">deal 16 ↗</a> · <a href="https://www.instagram.com/p/DRDgA6qgZTQ/" target="_blank">deal 17 ↗</a> · <a href="https://www.instagram.com/p/DPo6s8GiYNt/" target="_blank">deal 18 ↗</a> · <a href="https://www.instagram.com/p/DPCHXGxDiSK/" target="_blank">deal 19 ↗</a> · <a href="https://www.instagram.com/p/DOgzhkZjvK2/" target="_blank">deal 20 ↗</a> · <a href="https://www.instagram.com/p/DOCbEVOAXMK/" target="_blank">deal 21 ↗</a></div>
+    </section><a name="he_whoknocks"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@he_whoknocks</h2>
+        <a class="ig" href="https://www.instagram.com/he_whoknocks/" target="_blank">
+          instagram.com/he_whoknocks ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">182</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">12</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">albertabootco</span> <span class="chip">bartleyskills</span> <span class="chip">blackhawktire</span> <span class="chip">cherylweber</span> <span class="chip">crossroadsmedia</span> <span class="chip">davissancheztsn</span> <span class="chip">footballnovascotia</span> <span class="chip">it_may_be_ai</span> <span class="chip">jessxnoc</span> <span class="chip">joeamaral</span> <span class="chip">jsv.mp4</span> <span class="chip">katebeirness</span> <span class="chip">larawatson121</span> <span class="chip">mamaafrica_jess</span> <span class="chip">manulifecanada</span> <span class="chip">miltonstegall</span> <span class="chip">mrgreatbusiness</span> <span class="chip">mrs_maternal_instincts</span> <span class="chip">oktire</span> <span class="chip">r2delix</span> <span class="chip">sathiyamesam</span> <span class="chip">thejustinbailey</span> <span class="chip">yestvcanada</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DaRi439lozh/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/DafuK2pR6YA/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/DZPcdybN5zE/" target="_blank">deal 3 ↗</a> · <a href="https://www.instagram.com/p/DW2BSCsEQos/" target="_blank">deal 4 ↗</a> · <a href="https://www.instagram.com/p/DUg-LZMjSIa/" target="_blank">deal 5 ↗</a> · <a href="https://www.instagram.com/p/DUtgCQGEUGh/" target="_blank">deal 6 ↗</a> · <a href="https://www.instagram.com/p/DT3qtmVCTcs/" target="_blank">deal 7 ↗</a> · <a href="https://www.instagram.com/p/DTBUIm7kXh0/" target="_blank">deal 8 ↗</a> · <a href="https://www.instagram.com/p/DQMkXdbjZsT/" target="_blank">deal 9 ↗</a> · <a href="https://www.instagram.com/p/DNtIRJfXC62/" target="_blank">deal 10 ↗</a> · <a href="https://www.instagram.com/p/DUbha9-kY1u/" target="_blank">deal 11 ↗</a> · <a href="https://www.instagram.com/p/DRKleWziRnc/" target="_blank">deal 12 ↗</a></div>
+    </section><a name="ajourneyinspired"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@ajourneyinspired</h2>
+        <a class="ig" href="https://www.instagram.com/ajourneyinspired/" target="_blank">
+          instagram.com/ajourneyinspired ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">146</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">60</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">aliciakiing_</span> <span class="chip">alltrails</span> <span class="chip">anua_global</span> <span class="chip">anytimemailbox</span> <span class="chip">arcteryx</span> <span class="chip">arcteryxbc</span> <span class="chip">ashertheadventurer</span> <span class="chip">backpackerspantry</span> <span class="chip">baffinworldwide</span> <span class="chip">bcparksfdn</span> <span class="chip">blackdiamond</span> <span class="chip">botanicaflowerfestival</span> <span class="chip">botanicaflowerfestival.</span> <span class="chip">bowiethe.aussie</span> <span class="chip">brooksrunningca</span> <span class="chip">campwithcol</span> <span class="chip">cape.carraholly.retreat</span> <span class="chip">cedarandmosscoffee</span> <span class="chip">cieleathletics</span> <span class="chip">crownofcureope</span> <span class="chip">davidhui11</span> <span class="chip">durstongear</span> <span class="chip">eileentangg</span> <span class="chip">erinnno</span> <span class="chip">faithchaan</span> <span class="chip">foodtraveleisure</span> <span class="chip">ford</span> <span class="chip">fordcanada</span> <span class="chip">geoffswong</span> <span class="chip">greenbowlfoods</span> <span class="chip">hana_cowling</span> <span class="chip">handeyedesignceramics</span> <span class="chip">harrisontulipfest</span> <span class="chip">hydrapak</span> <span class="chip">icebreakernz</span> <span class="chip">jetpacglobal</span> <span class="chip">katadyn_group</span> <span class="chip">keencanada</span> <span class="chip">leanna__b</span> <span class="chip">lululemon</span> <span class="chip">mapleleaffoods</span> <span class="chip">mapo_tapo</span> <span class="chip">matadorequipment</span> <span class="chip">meaghanmariie</span> <span class="chip">mec</span> <span class="chip">merrellcanada</span> <span class="chip">mightyproteincanada</span> <span class="chip">mkelvinpalomares</span> <span class="chip">mtnhouse</span> <span class="chip">nemoequipment</span> <span class="chip">nia.patience</span> <span class="chip">nonormalco</span> <span class="chip">nutrience_</span> <span class="chip">oceanus_adventure</span> <span class="chip">ospreypacks</span> <span class="chip">paolabsjelly</span> <span class="chip">parks.canada</span> <span class="chip">rab.equipment</span> <span class="chip">rab.equipment.na</span> <span class="chip">rockymountainsoapco</span> <span class="chip">roostervelt</span> <span class="chip">ruffwear</span> <span class="chip">rviitalize</span> <span class="chip">ryancifra_</span> <span class="chip">sabriinab___</span> <span class="chip">salomon</span> <span class="chip">scoscheinc</span> <span class="chip">seeandbewilder</span> <span class="chip">shellstationsca</span> <span class="chip">shimizumc</span> <span class="chip">smartwool_canada</span> <span class="chip">snowpeakusa</span> <span class="chip">springtidewhalewatching</span> <span class="chip">t_chuu</span> <span class="chip">tavesfarms</span> <span class="chip">tellez_g</span> <span class="chip">tgwlo</span> <span class="chip">thebertshoe</span> <span class="chip">thenorthface</span> <span class="chip">thermarest</span> <span class="chip">tinggly</span> <span class="chip">toyotacanada</span> <span class="chip">traderjoes</span> <span class="chip">trailhouse.collective</span> <span class="chip">trekwithalpaca</span> <span class="chip">tubbssnowshoes</span> <span class="chip">ugreen_official</span> <span class="chip">walmartcanada</span> <span class="chip">wrightsock</span> <span class="chip">yourbcparks</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DNhYg49Ruua/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/DahNG8fyfwS/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/DZGfnrkPnD0/" target="_blank">deal 3 ↗</a> · <a href="https://www.instagram.com/p/Dal3gpuj8YP/" target="_blank">deal 4 ↗</a> · <a href="https://www.instagram.com/p/DYX07sExMku/" target="_blank">deal 5 ↗</a> · <a href="https://www.instagram.com/p/DYQKH8lRIi6/" target="_blank">deal 6 ↗</a> · <a href="https://www.instagram.com/p/DW66n5fD2k6/" target="_blank">deal 7 ↗</a> · <a href="https://www.instagram.com/p/DXajAVzEmRg/" target="_blank">deal 8 ↗</a> · <a href="https://www.instagram.com/p/DWkqOTwEsuW/" target="_blank">deal 9 ↗</a> · <a href="https://www.instagram.com/p/DUbQ0KLAXjU/" target="_blank">deal 10 ↗</a> · <a href="https://www.instagram.com/p/DVJx_IpkmzD/" target="_blank">deal 11 ↗</a> · <a href="https://www.instagram.com/p/DVPypaKESTY/" target="_blank">deal 12 ↗</a> · <a href="https://www.instagram.com/p/DUSHADHjRjO/" target="_blank">deal 13 ↗</a> · <a href="https://www.instagram.com/p/DXx5V57lLAW/" target="_blank">deal 14 ↗</a> · <a href="https://www.instagram.com/p/DWPyCYIDx_k/" target="_blank">deal 15 ↗</a> · <a href="https://www.instagram.com/p/DTO6HEwEfru/" target="_blank">deal 16 ↗</a> · <a href="https://www.instagram.com/p/DThDZK6kUeJ/" target="_blank">deal 17 ↗</a> · <a href="https://www.instagram.com/p/DSqsFdTAWV1/" target="_blank">deal 18 ↗</a> · <a href="https://www.instagram.com/p/DTtrgPZD8Wt/" target="_blank">deal 19 ↗</a> · <a href="https://www.instagram.com/p/DSTtB-mEZGK/" target="_blank">deal 20 ↗</a> · <a href="https://www.instagram.com/p/DSEP2d7kYdg/" target="_blank">deal 21 ↗</a> · <a href="https://www.instagram.com/p/DTwd44sEbhm/" target="_blank">deal 22 ↗</a> · <a href="https://www.instagram.com/p/DTUFYfOkXuE/" target="_blank">deal 23 ↗</a> · <a href="https://www.instagram.com/p/DRNhNgaEZuz/" target="_blank">deal 24 ↗</a> · <a href="https://www.instagram.com/p/DRdcweID9Lb/" target="_blank">deal 25 ↗</a> · <a href="https://www.instagram.com/p/DRyQDavkX83/" target="_blank">deal 26 ↗</a> · <a href="https://www.instagram.com/p/DTGSNm-D2fK/" target="_blank">deal 27 ↗</a> · <a href="https://www.instagram.com/p/DQun48rEqhO/" target="_blank">deal 28 ↗</a> · <a href="https://www.instagram.com/p/DU4kilxET_P/" target="_blank">deal 29 ↗</a> · <a href="https://www.instagram.com/p/DRlZoyhEa51/" target="_blank">deal 30 ↗</a> · <a href="https://www.instagram.com/p/DPP5d9BiSFh/" target="_blank">deal 31 ↗</a> · <a href="https://www.instagram.com/p/DQDg0MLEUy8/" target="_blank">deal 32 ↗</a> · <a href="https://www.instagram.com/p/DPpcEdmgWLO/" target="_blank">deal 33 ↗</a> · <a href="https://www.instagram.com/p/DQXkzimkniq/" target="_blank">deal 34 ↗</a> · <a href="https://www.instagram.com/p/DQnW4XJgZOn/" target="_blank">deal 35 ↗</a> · <a href="https://www.instagram.com/p/DQU8PSJEpJN/" target="_blank">deal 36 ↗</a> · <a href="https://www.instagram.com/p/DP47g7NgRt9/" target="_blank">deal 37 ↗</a> · <a href="https://www.instagram.com/p/DOZ-orukYmZ/" target="_blank">deal 38 ↗</a> · <a href="https://www.instagram.com/p/DOpOQklj6m8/" target="_blank">deal 39 ↗</a> · <a href="https://www.instagram.com/p/DOuWq44jz4W/" target="_blank">deal 40 ↗</a> · <a href="https://www.instagram.com/p/DO7SxA1Cb6j/" target="_blank">deal 41 ↗</a> · <a href="https://www.instagram.com/p/DUXCGVeEdNg/" target="_blank">deal 42 ↗</a> · <a href="https://www.instagram.com/p/DS84P1iESW9/" target="_blank">deal 43 ↗</a> · <a href="https://www.instagram.com/p/DOhQlUHknbB/" target="_blank">deal 44 ↗</a> · <a href="https://www.instagram.com/p/DNjutrMJUue/" target="_blank">deal 45 ↗</a> · <a href="https://www.instagram.com/p/DOPZYs_AUxo/" target="_blank">deal 46 ↗</a> · <a href="https://www.instagram.com/p/DNUYfPbxILb/" target="_blank">deal 47 ↗</a> · <a href="https://www.instagram.com/p/DN3-1rv4oFG/" target="_blank">deal 48 ↗</a> · <a href="https://www.instagram.com/p/DPNZWgZEUXq/" target="_blank">deal 49 ↗</a> · <a href="https://www.instagram.com/p/DN6Z7zJDu_L/" target="_blank">deal 50 ↗</a> · <a href="https://www.instagram.com/p/DN1WIuFZNlU/" target="_blank">deal 51 ↗</a> · <a href="https://www.instagram.com/p/DOEpKNHkis4/" target="_blank">deal 52 ↗</a> · <a href="https://www.instagram.com/p/DPFMewbEkVD/" target="_blank">deal 53 ↗</a> · <a href="https://www.instagram.com/p/DOw0Wo1Ed-2/" target="_blank">deal 54 ↗</a> · <a href="https://www.instagram.com/p/DQdR3Y-kSpX/" target="_blank">deal 55 ↗</a> · <a href="https://www.instagram.com/p/DPmwAhrAXIn/" target="_blank">deal 56 ↗</a> · <a href="https://www.instagram.com/p/DNoxQMIh721/" target="_blank">deal 57 ↗</a> · <a href="https://www.instagram.com/p/DNB5jMYhKXO/" target="_blank">deal 58 ↗</a> · <a href="https://www.instagram.com/p/DNO84n7yIFY/" target="_blank">deal 59 ↗</a> · <a href="https://www.instagram.com/p/DM_yO-ExAEz/" target="_blank">deal 60 ↗</a></div>
+    </section><a name="the_couponbae"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@the_couponbae</h2>
+        <a class="ig" href="https://www.instagram.com/the_couponbae/" target="_blank">
+          instagram.com/the_couponbae ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">198</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">24</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">15yrsfootwear</span> <span class="chip">aandbsjourney</span> <span class="chip">boosterjuice</span> <span class="chip">culturegurl</span> <span class="chip">doordash_ca</span> <span class="chip">fieldagentcanada</span> <span class="chip">filify_app</span> <span class="chip">fiveguys</span> <span class="chip">greenhousejuice</span> <span class="chip">hellofreshca</span> <span class="chip">hidden_regina</span> <span class="chip">hidden_sask</span> <span class="chip">itsthesavingsforme</span> <span class="chip">kby_couponer</span> <span class="chip">mcdonalds</span> <span class="chip">mcdonaldscanada</span> <span class="chip">narcitycanada</span> <span class="chip">reginadowntownbid</span> <span class="chip">saskpower</span> <span class="chip">sephoracanada</span> <span class="chip">skip_canada</span> <span class="chip">starbuckscanada</span> <span class="chip">timhortons</span> <span class="chip">toogoodtogo.can</span> <span class="chip">wokbox</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DWWnNUJgIJ1/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/DaoQWiWx8oX/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/DZq1NwSxhSt/" target="_blank">deal 3 ↗</a> · <a href="https://www.instagram.com/p/DY576lJR0y9/" target="_blank">deal 4 ↗</a> · <a href="https://www.instagram.com/p/DZU9Rp9x003/" target="_blank">deal 5 ↗</a> · <a href="https://www.instagram.com/p/DZAYFs6RDvp/" target="_blank">deal 6 ↗</a> · <a href="https://www.instagram.com/p/DZA9UM8FgTR/" target="_blank">deal 7 ↗</a> · <a href="https://www.instagram.com/p/DY0JX4cEvUp/" target="_blank">deal 8 ↗</a> · <a href="https://www.instagram.com/p/DXnO1ujkSBw/" target="_blank">deal 9 ↗</a> · <a href="https://www.instagram.com/p/DX-BpCMRsvn/" target="_blank">deal 10 ↗</a> · <a href="https://www.instagram.com/p/DXYReKcEfTG/" target="_blank">deal 11 ↗</a> · <a href="https://www.instagram.com/p/DXCcsrnkffq/" target="_blank">deal 12 ↗</a> · <a href="https://www.instagram.com/p/DWJ4DB3AJ9k/" target="_blank">deal 13 ↗</a> · <a href="https://www.instagram.com/p/DXPamovEUhj/" target="_blank">deal 14 ↗</a> · <a href="https://www.instagram.com/p/DWXqUJagGzt/" target="_blank">deal 15 ↗</a> · <a href="https://www.instagram.com/p/DWWcl1HAMUD/" target="_blank">deal 16 ↗</a> · <a href="https://www.instagram.com/p/DYDLGy2lqpl/" target="_blank">deal 17 ↗</a> · <a href="https://www.instagram.com/p/DU_EbInAC6f/" target="_blank">deal 18 ↗</a> · <a href="https://www.instagram.com/p/DUYyBJ0D8sq/" target="_blank">deal 19 ↗</a> · <a href="https://www.instagram.com/p/DUq6kSukurJ/" target="_blank">deal 20 ↗</a> · <a href="https://www.instagram.com/p/DUHxWrXgMm7/" target="_blank">deal 21 ↗</a> · <a href="https://www.instagram.com/p/DT1Z9kvj2Yr/" target="_blank">deal 22 ↗</a> · <a href="https://www.instagram.com/p/DUKa21QgDYp/" target="_blank">deal 23 ↗</a> · <a href="https://www.instagram.com/p/DUlaA2CiRtI/" target="_blank">deal 24 ↗</a></div>
+    </section><a name="diywithnancyg"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@diywithnancyg</h2>
+        <a class="ig" href="https://www.instagram.com/diywithnancyg/" target="_blank">
+          instagram.com/diywithnancyg ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">64</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">22</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <div class="brands">—</div><div class="deallinks"><a href="https://www.instagram.com/p/DUTHafwjY6Z/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/DTLaFI4kQd8/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/DUatl6rDVsZ/" target="_blank">deal 3 ↗</a> · <a href="https://www.instagram.com/p/DUBkAdrEWcQ/" target="_blank">deal 4 ↗</a> · <a href="https://www.instagram.com/p/DTP54tzjteM/" target="_blank">deal 5 ↗</a> · <a href="https://www.instagram.com/p/DTi-KSFkTTW/" target="_blank">deal 6 ↗</a> · <a href="https://www.instagram.com/p/DS5uL8CkZUh/" target="_blank">deal 7 ↗</a> · <a href="https://www.instagram.com/p/DSZ5Y3KjTw_/" target="_blank">deal 8 ↗</a> · <a href="https://www.instagram.com/p/DSpPEZ3jpBG/" target="_blank">deal 9 ↗</a> · <a href="https://www.instagram.com/p/DRPLPHFDSda/" target="_blank">deal 10 ↗</a> · <a href="https://www.instagram.com/p/DQl54q3jVn6/" target="_blank">deal 11 ↗</a> · <a href="https://www.instagram.com/p/DOizM8fDQfc/" target="_blank">deal 12 ↗</a> · <a href="https://www.instagram.com/p/DQwZ_UmDYl0/" target="_blank">deal 13 ↗</a> · <a href="https://www.instagram.com/p/DTyz_eWDS5I/" target="_blank">deal 14 ↗</a> · <a href="https://www.instagram.com/p/DTdoadGEZpT/" target="_blank">deal 15 ↗</a> · <a href="https://www.instagram.com/p/DRjuyuYDezN/" target="_blank">deal 16 ↗</a> · <a href="https://www.instagram.com/p/DQ7h0OmEmyC/" target="_blank">deal 17 ↗</a> · <a href="https://www.instagram.com/p/DOCnotojU0f/" target="_blank">deal 18 ↗</a> · <a href="https://www.instagram.com/p/DRzQjyiDQoV/" target="_blank">deal 19 ↗</a> · <a href="https://www.instagram.com/p/DNOKg5IRFsw/" target="_blank">deal 20 ↗</a> · <a href="https://www.instagram.com/p/DQ2RikTkT65/" target="_blank">deal 21 ↗</a> · <a href="https://www.instagram.com/p/DNfwy_4xv_1/" target="_blank">deal 22 ↗</a></div>
+    </section><a name="inspiringolivia"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@inspiringolivia</h2>
+        <a class="ig" href="https://www.instagram.com/inspiringolivia/" target="_blank">
+          instagram.com/inspiringolivia ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">166</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">57</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">4catsstudio</span> <span class="chip">__mackmade</span> <span class="chip">advikaclothing</span> <span class="chip">anandaelixirs</span> <span class="chip">attitude_living</span> <span class="chip">avene</span> <span class="chip">beavercountysoapco</span> <span class="chip">blacks</span> <span class="chip">borderlineodottawa</span> <span class="chip">cestbonbonca</span> <span class="chip">cfrideaucentre</span> <span class="chip">cheohospital</span> <span class="chip">chickenstreetcanada</span> <span class="chip">cocktailbombshop</span> <span class="chip">collectivebrew</span> <span class="chip">creator.space.community</span> <span class="chip">davidstea</span> <span class="chip">decathloncanada</span> <span class="chip">deuxpardeuxkids</span> <span class="chip">dillonsdistills</span> <span class="chip">dreamcrustpizza</span> <span class="chip">drinkamoda</span> <span class="chip">firebellytea</span> <span class="chip">freshprep.ca</span> <span class="chip">goferrun</span> <span class="chip">goodprotein</span> <span class="chip">habitatgorestore</span> <span class="chip">heylist.social</span> <span class="chip">honeydripottawa</span> <span class="chip">jurassicquest</span> <span class="chip">kanelspices</span> <span class="chip">knix</span> <span class="chip">knixambassadors</span> <span class="chip">lamour_beauty_and_life</span> <span class="chip">lonestartexasgrill</span> <span class="chip">luckyironlife</span> <span class="chip">madegoodfoodscanada</span> <span class="chip">malathebrand</span> <span class="chip">miikinc</span> <span class="chip">momfluence.co</span> <span class="chip">mystorytalebooks</span> <span class="chip">oddbunchcanada</span> <span class="chip">officialfarmboy</span> <span class="chip">omy.lab</span> <span class="chip">omylaboratoires</span> <span class="chip">originalsottawa</span> <span class="chip">ottawabloggers</span> <span class="chip">pamperscanada</span> <span class="chip">paperpixigifts</span> <span class="chip">parsonsbrewing</span> <span class="chip">pelacase</span> <span class="chip">petals_teashop</span> <span class="chip">pokebysushishop</span> <span class="chip">pokolokoltd</span> <span class="chip">prismacasadesign</span> <span class="chip">roadnroast</span> <span class="chip">rouubaby</span> <span class="chip">rudiejomercantile</span> <span class="chip">sajewellness</span> <span class="chip">sanctuaryyyc</span> <span class="chip">savvycompanyinc</span> <span class="chip">sfaita</span> <span class="chip">shopelevenlove</span> <span class="chip">signaturesottawa</span> <span class="chip">skinspaesthetics</span> <span class="chip">soja_co</span> <span class="chip">spedmycity</span> <span class="chip">stefanofaitabrand</span> <span class="chip">storybugbooks</span> <span class="chip">suyinliftsgym</span> <span class="chip">tangenteclothing</span> <span class="chip">tealishtea</span> <span class="chip">th3rdwave</span> <span class="chip">thecountybounty</span> <span class="chip">thehappybox.ca</span> <span class="chip">themanotickvillage</span> <span class="chip">thepinkpillfilm</span> <span class="chip">theroasterspack</span> <span class="chip">tiny.twists.co</span> <span class="chip">toad.and.turtle</span> <span class="chip">truekind</span> <span class="chip">wall_art_prints</span> <span class="chip">wayfaircanada</span> <span class="chip">wearewinck</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DbES_Png5sA/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/Da8o74zRw_n/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/Da3u-zFRSJJ/" target="_blank">deal 3 ↗</a> · <a href="https://www.instagram.com/p/DagBoGmRki8/" target="_blank">deal 4 ↗</a> · <a href="https://www.instagram.com/p/DaT1xI6xUAd/" target="_blank">deal 5 ↗</a> · <a href="https://www.instagram.com/p/DZ2xPMfRRtD/" target="_blank">deal 6 ↗</a> · <a href="https://www.instagram.com/p/DY7zmzuRegq/" target="_blank">deal 7 ↗</a> · <a href="https://www.instagram.com/p/DYk9nqixtiQ/" target="_blank">deal 8 ↗</a> · <a href="https://www.instagram.com/p/DZxoyZSRD8Q/" target="_blank">deal 9 ↗</a> · <a href="https://www.instagram.com/p/DYNU-gsxmTP/" target="_blank">deal 10 ↗</a> · <a href="https://www.instagram.com/p/DbL5Qfpx_2k/" target="_blank">deal 11 ↗</a> · <a href="https://www.instagram.com/p/DX4nv9RlQia/" target="_blank">deal 12 ↗</a> · <a href="https://www.instagram.com/p/DY2fK9iRmB7/" target="_blank">deal 13 ↗</a> · <a href="https://www.instagram.com/p/DXUoYrZkX6l/" target="_blank">deal 14 ↗</a> · <a href="https://www.instagram.com/p/DXXHnjtkSqV/" target="_blank">deal 15 ↗</a> · <a href="https://www.instagram.com/p/DXP49bEkbzo/" target="_blank">deal 16 ↗</a> · <a href="https://www.instagram.com/p/DZ59qQHR_Af/" target="_blank">deal 17 ↗</a> · <a href="https://www.instagram.com/p/DWzK9zikZge/" target="_blank">deal 18 ↗</a> · <a href="https://www.instagram.com/p/DWt6bDMkWnj/" target="_blank">deal 19 ↗</a> · <a href="https://www.instagram.com/p/DV88ZsckYJu/" target="_blank">deal 20 ↗</a> · <a href="https://www.instagram.com/p/DWWtF8SkfLS/" target="_blank">deal 21 ↗</a> · <a href="https://www.instagram.com/p/DWhN12EEcsH/" target="_blank">deal 22 ↗</a> · <a href="https://www.instagram.com/p/DWjmAwPkXrw/" target="_blank">deal 23 ↗</a> · <a href="https://www.instagram.com/p/DXFFJovER6_/" target="_blank">deal 24 ↗</a> · <a href="https://www.instagram.com/p/DV6gMFXke2K/" target="_blank">deal 25 ↗</a> · <a href="https://www.instagram.com/p/DTveDq5kd1u/" target="_blank">deal 26 ↗</a> · <a href="https://www.instagram.com/p/DUZDnxkketh/" target="_blank">deal 27 ↗</a> · <a href="https://www.instagram.com/p/DVHqaLPEZO5/" target="_blank">deal 28 ↗</a> · <a href="https://www.instagram.com/p/DRu0BgxETJY/" target="_blank">deal 29 ↗</a> · <a href="https://www.instagram.com/p/DQ2frRrkfRf/" target="_blank">deal 30 ↗</a> · <a href="https://www.instagram.com/p/DQxFWndkZKJ/" target="_blank">deal 31 ↗</a> · <a href="https://www.instagram.com/p/DQmsiK6kZdN/" target="_blank">deal 32 ↗</a> · <a href="https://www.instagram.com/p/DQ-Bi6MkYqG/" target="_blank">deal 33 ↗</a> · <a href="https://www.instagram.com/p/DRaJyw3kd93/" target="_blank">deal 34 ↗</a> · <a href="https://www.instagram.com/p/DRz-2Fckaqx/" target="_blank">deal 35 ↗</a> · <a href="https://www.instagram.com/p/DRf9UgWESiu/" target="_blank">deal 36 ↗</a> · <a href="https://www.instagram.com/p/DSVHacokUjF/" target="_blank">deal 37 ↗</a> · <a href="https://www.instagram.com/p/DVRVXQmEfXR/" target="_blank">deal 38 ↗</a> · <a href="https://www.instagram.com/p/DZdHPpVRIwK/" target="_blank">deal 39 ↗</a> · <a href="https://www.instagram.com/p/DQH0AQNEQM1/" target="_blank">deal 40 ↗</a> · <a href="https://www.instagram.com/p/DQCitRXkTVh/" target="_blank">deal 41 ↗</a> · <a href="https://www.instagram.com/p/DQW7i2hkZeS/" target="_blank">deal 42 ↗</a> · <a href="https://www.instagram.com/p/DO6kr0JEUUJ/" target="_blank">deal 43 ↗</a> · <a href="https://www.instagram.com/p/DPRi10EEdXB/" target="_blank">deal 44 ↗</a> · <a href="https://www.instagram.com/p/DPCLD6ZEUc0/" target="_blank">deal 45 ↗</a> · <a href="https://www.instagram.com/p/DN8x5JBERD-/" target="_blank">deal 46 ↗</a> · <a href="https://www.instagram.com/p/DOtrYxIkTIR/" target="_blank">deal 47 ↗</a> · <a href="https://www.instagram.com/p/DQNPTKskaZM/" target="_blank">deal 48 ↗</a> · <a href="https://www.instagram.com/p/DPefRHmEdGg/" target="_blank">deal 49 ↗</a> · <a href="https://www.instagram.com/p/DNy7pNVYu0j/" target="_blank">deal 50 ↗</a> · <a href="https://www.instagram.com/p/DNom-KKR0e9/" target="_blank">deal 51 ↗</a> · <a href="https://www.instagram.com/p/DP60MuNETwF/" target="_blank">deal 52 ↗</a> · <a href="https://www.instagram.com/p/DNTyySDxRDX/" target="_blank">deal 53 ↗</a> · <a href="https://www.instagram.com/p/DN3sCYv4o9R/" target="_blank">deal 54 ↗</a> · <a href="https://www.instagram.com/p/DNg9YJOxGWS/" target="_blank">deal 55 ↗</a> · <a href="https://www.instagram.com/p/DOOs1H6EQyg/" target="_blank">deal 56 ↗</a> · <a href="https://www.instagram.com/p/DQr_merEV-3/" target="_blank">deal 57 ↗</a></div>
+    </section><a name="annaspataro"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@annaspataro</h2>
+        <a class="ig" href="https://www.instagram.com/annaspataro/" target="_blank">
+          instagram.com/annaspataro ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <p class="none">No brand deals detected.</p>
+    </section><a name="agirlnamedhunter"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@agirlnamedhunter</h2>
+        <a class="ig" href="https://www.instagram.com/agirlnamedhunter/" target="_blank">
+          instagram.com/agirlnamedhunter ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">200</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <p class="none">No brand deals detected.</p>
+    </section><a name="tristianclunis"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@tristianclunis</h2>
+        <a class="ig" href="https://www.instagram.com/tristianclunis/" target="_blank">
+          instagram.com/tristianclunis ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">77</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">8</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">dluxephotobooths_</span> <span class="chip">jeromedoesmortgages</span> <span class="chip">mydj2nice</span> <span class="chip">rlpsignature</span> <span class="chip">seasaltseafoodcafe</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DXRnZ4Gx9Bc/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/DXWwfmNRcGw/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/DXHSH9TRBGt/" target="_blank">deal 3 ↗</a> · <a href="https://www.instagram.com/p/DW_ZdWaRH8t/" target="_blank">deal 4 ↗</a> · <a href="https://www.instagram.com/p/DW6QTUGxWI5/" target="_blank">deal 5 ↗</a> · <a href="https://www.instagram.com/p/DW1DWnRRh6R/" target="_blank">deal 6 ↗</a> · <a href="https://www.instagram.com/p/DRzdovSkTxJ/" target="_blank">deal 7 ↗</a> · <a href="https://www.instagram.com/p/DRkQrtgERRC/" target="_blank">deal 8 ↗</a></div>
+    </section><a name="playingwithapparelmen"></a>
+    <section class="card">
+      <div class="card-head">
+        <h2>@playingwithapparelmen</h2>
+        <a class="ig" href="https://www.instagram.com/playingwithapparelmen/" target="_blank">
+          instagram.com/playingwithapparelmen ↗</a>
+      </div>
+      <div class="topstats">
+        <div class="stat"><span class="num">31</span>
+          <span class="lbl">posts (12mo)</span></div>
+        <div class="stat"><span class="num">3</span>
+          <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">0</span>
+          <span class="lbl">flagged videos</span></div>
+      </div>
+      <div class="catstats"><div class="stat"><span class="num" style="color:#c0392b">0</span><span class="lbl">Drinking</span></div><div class="stat"><span class="num" style="color:#8e44ad">0</span><span class="lbl">Smoking</span></div><div class="stat"><span class="num" style="color:#d35400">0</span><span class="lbl">Partying</span></div><div class="stat"><span class="num" style="color:#16704a">0</span><span class="lbl">Gambling</span></div><div class="stat"><span class="num" style="color:#2c3e50">0</span><span class="lbl">Swearing</span></div></div>
+      <h3>Flagged videos</h3>
+      <p class="none">No flagged videos.</p>
+      <h3>Brand deals</h3>
+      <div class="brands"><span class="chip">playdiumca</span> <span class="chip">riomare_canada</span> <span class="chip">thedarnleyhousepei</span> <span class="chip">tourismpei</span> <span class="chip">visitredsands</span></div><div class="deallinks"><a href="https://www.instagram.com/p/DaOJlPgyQE2/" target="_blank">deal 1 ↗</a> · <a href="https://www.instagram.com/p/DSLbGbmkhVr/" target="_blank">deal 2 ↗</a> · <a href="https://www.instagram.com/p/DN8RDtlDrpZ/" target="_blank">deal 3 ↗</a></div>
+    </section>
+
+  <p class="note">
+    Flags come from an AI vision model reviewing 6 sampled
+    frames per video. They indicate content <em>worth reviewing</em>, not verified
+    fact — check the reasoning and the linked post. "Swearing" only detects profanity
+    visible in on-screen text, not spoken audio.
+  </p>
+</div></body></html>

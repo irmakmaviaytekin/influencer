@@ -1,5 +1,12 @@
-"""Analysis: brand-deal detection (captions) and alcohol detection (video vision)."""
+"""Analysis: brand-deal detection (captions) and content flags (video vision).
+
+Content flags checked from sampled video frames:
+    drinking (alcohol), smoking, partying, gambling, swearing.
+NOTE: the model only sees still frames, so "swearing" can only be caught when
+profanity is visible in on-screen text/captions - spoken swearing is not detected.
+"""
 import base64
+import json
 import re
 import tempfile
 
@@ -8,6 +15,8 @@ import requests
 import anthropic
 
 import config
+
+CONTENT_CATEGORIES = ["drinking", "smoking", "partying", "gambling", "swearing"]
 
 
 # ---------------------------------------------------------------------------
@@ -29,10 +38,8 @@ def detect_brand_deals(post: dict) -> dict:
         if phrase in caption:
             signals.append(f'"{phrase}"')
 
-    # Brand candidates: @mentions and tagged accounts.
     brands = set(post.get("mentions") or [])
     brands.update(post.get("tagged_users") or [])
-    # @mentions embedded in caption text.
     brands.update(re.findall(r"@([A-Za-z0-9_.]+)", caption))
 
     return {
@@ -43,7 +50,7 @@ def detect_brand_deals(post: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Alcohol detection via video frames
+# Video frame sampling
 # ---------------------------------------------------------------------------
 def _download_video(url: str) -> str | None:
     if not url:
@@ -85,34 +92,50 @@ def _sample_frames(video_path: str, n: int) -> list[bytes]:
     return frames
 
 
-_ALCOHOL_PROMPT = (
+# ---------------------------------------------------------------------------
+# Content-flag detection
+# ---------------------------------------------------------------------------
+_CONTENT_PROMPT = (
     "You are reviewing sampled frames from a single social-media video. "
-    "Determine whether anyone is consuming alcohol OR whether alcoholic "
-    "drinks (beer, wine, cocktails, spirits, champagne) are clearly visible. "
-    "Respond with a strict JSON object, no prose:\n"
-    '{"alcohol": true|false, "confidence": 0.0-1.0, "evidence": "short reason"}'
+    "For each category below, decide if it is clearly present in the frames:\n"
+    "- drinking: someone consuming alcohol, or alcoholic drinks (beer, wine, "
+    "cocktails, spirits, champagne) clearly visible\n"
+    "- smoking: cigarettes, cigars, vaping, or smoking-related products\n"
+    "- partying: club/party scene, crowds dancing, nightlife, heavy celebration\n"
+    "- gambling: casino, cards for money, slot machines, betting, poker chips\n"
+    "- swearing: profanity visible in ON-SCREEN TEXT or captions "
+    "(you cannot hear audio; judge text only)\n\n"
+    "Respond with ONLY a strict JSON object, no prose:\n"
+    '{"drinking":{"present":bool,"evidence":"short reason or empty"},'
+    '"smoking":{"present":bool,"evidence":""},'
+    '"partying":{"present":bool,"evidence":""},'
+    '"gambling":{"present":bool,"evidence":""},'
+    '"swearing":{"present":bool,"evidence":""}}'
 )
 
 
-def detect_alcohol(post: dict, client: anthropic.Anthropic) -> dict:
-    """Download the post's video, sample frames, ask the vision model about alcohol."""
-    result = {"alcohol": None, "confidence": None, "evidence": ""}
+def _empty_result(note: str = "") -> dict:
+    return {cat: {"present": False, "evidence": note} for cat in CONTENT_CATEGORIES}
+
+
+def detect_content(post: dict, client: anthropic.Anthropic) -> dict:
+    """Download the post's video, sample frames, flag the content categories.
+
+    Returns {category: {"present": bool, "evidence": str}} for every category.
+    """
     video_url = post.get("video_url")
     if not video_url:
-        result["evidence"] = "no video"
-        return result
+        return _empty_result("no video")
 
     path = _download_video(video_url)
     if not path:
-        result["evidence"] = "video download failed"
-        return result
+        return _empty_result("video download failed")
 
     frames = _sample_frames(path, config.FRAMES_PER_VIDEO)
     if not frames:
-        result["evidence"] = "no frames extracted"
-        return result
+        return _empty_result("no frames extracted")
 
-    content = [{"type": "text", "text": _ALCOHOL_PROMPT}]
+    content = [{"type": "text", "text": _CONTENT_PROMPT}]
     for f in frames:
         content.append({
             "type": "image",
@@ -126,18 +149,23 @@ def detect_alcohol(post: dict, client: anthropic.Anthropic) -> dict:
     try:
         msg = client.messages.create(
             model=config.VISION_MODEL,
-            max_tokens=200,
+            max_tokens=400,
             messages=[{"role": "user", "content": content}],
         )
         text = msg.content[0].text.strip()
         text = re.sub(r"^```(?:json)?|```$", "", text, flags=re.MULTILINE).strip()
-        import json
         parsed = json.loads(text)
-        result.update({
-            "alcohol": bool(parsed.get("alcohol")),
-            "confidence": parsed.get("confidence"),
-            "evidence": parsed.get("evidence", ""),
-        })
-    except Exception as e:  # noqa: BLE001 - surface model/parse errors in output
-        result["evidence"] = f"vision error: {e}"
+    except Exception as e:  # noqa: BLE001 - surface errors in the report
+        return _empty_result(f"vision error: {e}")
+
+    result = _empty_result()
+    for cat in CONTENT_CATEGORIES:
+        entry = parsed.get(cat) or {}
+        if isinstance(entry, dict):
+            result[cat] = {
+                "present": bool(entry.get("present")),
+                "evidence": str(entry.get("evidence", "")),
+            }
+        else:
+            result[cat] = {"present": bool(entry), "evidence": ""}
     return result

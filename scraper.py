@@ -23,7 +23,6 @@ def _normalize(item: dict) -> dict:
     """
     ts = item.get("timestamp")
     caption = item.get("caption") or ""
-    # Video URL lives under different keys depending on media type.
     video_url = item.get("videoUrl") or item.get("video_url") or ""
     return {
         "id": item.get("id") or item.get("shortCode") or "",
