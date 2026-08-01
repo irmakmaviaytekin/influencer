@@ -50,6 +50,28 @@ def detect_brand_deals(post: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Text pass: competitor screening (no LLM call)
+# ---------------------------------------------------------------------------
+def _word_match(text: str, phrase: str) -> bool:
+    """Whole-word match for single words, plain substring for multi-word
+    phrases (spaces already anchor those). Prevents things like "rave"
+    matching inside "traveled"."""
+    if " " in phrase:
+        return phrase in text
+    return re.search(rf"\b{re.escape(phrase)}\b", text) is not None
+
+
+def detect_competitor(caption: str, brands: set[str], competitors: set[str]) -> str | None:
+    """Return the matched competitor name if `caption`/`brands` reference one
+    of `competitors` (case-insensitive), else None."""
+    cap_lower = (caption or "").lower()
+    for comp in competitors:
+        if comp in brands or _word_match(cap_lower, comp):
+            return comp
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Video frame sampling
 # ---------------------------------------------------------------------------
 def _download_video(url: str) -> str | None:
@@ -114,26 +136,31 @@ _CONTENT_PROMPT = (
 )
 
 
-def _empty_result(note: str = "") -> dict:
-    return {cat: {"present": False, "evidence": note} for cat in CONTENT_CATEGORIES}
+def _empty_result() -> dict:
+    return {cat: {"present": False, "evidence": ""} for cat in CONTENT_CATEGORIES}
 
 
 def detect_content(post: dict, client: anthropic.Anthropic) -> dict:
     """Download the post's video, sample frames, flag the content categories.
 
-    Returns {category: {"present": bool, "evidence": str}} for every category.
+    Returns {"error": str|None, "categories": {category: {"present": bool,
+    "evidence": str}}}. `error` is set (and categories are all-empty/unreliable)
+    when the video couldn't be downloaded or analyzed - this is distinct from a
+    successful analysis that found nothing, and callers must not treat the two
+    the same way (a download failure is not evidence of a clean profile).
     """
     video_url = post.get("video_url")
     if not video_url:
-        return _empty_result("no video")
+        return {"error": None, "categories": _empty_result()}
 
     path = _download_video(video_url)
     if not path:
-        return _empty_result("video download failed")
+        return {"error": "video download failed (link may have expired - try a fresh scrape)",
+                "categories": _empty_result()}
 
     frames = _sample_frames(path, config.FRAMES_PER_VIDEO)
     if not frames:
-        return _empty_result("no frames extracted")
+        return {"error": "no frames extracted", "categories": _empty_result()}
 
     content = [{"type": "text", "text": _CONTENT_PROMPT}]
     for f in frames:
@@ -156,7 +183,7 @@ def detect_content(post: dict, client: anthropic.Anthropic) -> dict:
         text = re.sub(r"^```(?:json)?|```$", "", text, flags=re.MULTILINE).strip()
         parsed = json.loads(text)
     except Exception as e:  # noqa: BLE001 - surface errors in the report
-        return _empty_result(f"vision error: {e}")
+        return {"error": f"vision error: {e}", "categories": _empty_result()}
 
     result = _empty_result()
     for cat in CONTENT_CATEGORIES:
@@ -168,4 +195,4 @@ def detect_content(post: dict, client: anthropic.Anthropic) -> dict:
             }
         else:
             result[cat] = {"present": bool(entry), "evidence": ""}
-    return result
+    return {"error": None, "categories": result}

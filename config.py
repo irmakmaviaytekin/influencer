@@ -34,3 +34,16 @@ DEAL_HASHTAGS = ["#ad", "#sponsored", "#paidpartnership", "#partner",
 DEAL_PHRASES = ["paid partnership", "paid promotion", "sponsored by",
                 "in partnership with", "thanks to", "use my code",
                 "discount code", "link in bio", "brand ambassador"]
+
+# --- Text pass (fast pre-screen, runs before any vision/LLM call) ---
+# One competitor brand/handle per line; profiles that mention one get
+# auto-rejected before the vision pass. This is the only text-based reject -
+# content categories (drinking, smoking, etc.) are decided by the vision
+# pass only, since caption keyword matching for those is too unreliable
+# (e.g. "vodka" matching inside "spicy vodka pizza").
+COMPETITOR_BRANDS_FILE = ROOT / "competitor_brands.txt"
+
+# --- Timing estimate ---
+# Rough seconds per video (download + frame sample + vision call), used to
+# estimate vision-pass duration after the text pass completes.
+EST_SECONDS_PER_VIDEO = 12

@@ -11,6 +11,7 @@ Usage:
 import csv
 import html
 import re
+import sys
 
 import openpyxl
 from openpyxl.styles import Font
@@ -21,6 +22,7 @@ CATS = ["Drinking", "Smoking", "Partying", "Gambling", "Swearing"]
 
 SUMMARY_ROW_RE = re.compile(
     r'<tr><td class="uname"><a href="#[^"]*">@([^<]+)</a></td>'
+    r'<td class="status status-(\w+)">[^<]*</td>'
     r'<td>(\d+)</td><td>(\d+)</td><td>(\d+)</td><td>(\d+)</td>'
     r'<td class="[^"]*">(\d+)</td><td class="[^"]*">(\d+)</td>'
     r'<td class="[^"]*">(\d+)</td><td class="[^"]*">(\d+)</td>'
@@ -29,6 +31,14 @@ SUMMARY_ROW_RE = re.compile(
 
 CARD_RE = re.compile(
     r'<a name="([^"]*)"></a>\s*<section class="card">(.*?)</section>', re.S
+)
+
+REJECT_REASON_RE = re.compile(
+    r'<p class="status-banner rejected">Auto-rejected — (.*?)</p>', re.S
+)
+
+VISION_GAP_RE = re.compile(
+    r'<p class="status-banner error">⚠ (\d+) of (\d+) videos could not be', re.S
 )
 
 FLAG_ROW_RE = re.compile(
@@ -54,18 +64,29 @@ def parse_report(text: str):
     summary = [
         {
             "username": unesc(m.group(1)),
-            "posts": int(m.group(2)),
-            "deals": int(m.group(3)),
-            "brands": int(m.group(4)),
-            "flagged": int(m.group(5)),
-            "cats": dict(zip(CATS, map(int, m.groups()[5:]))),
+            "status": m.group(2).capitalize(),
+            "posts": int(m.group(3)),
+            "deals": int(m.group(4)),
+            "brands": int(m.group(5)),
+            "flagged": int(m.group(6)),
+            "cats": dict(zip(CATS, map(int, m.groups()[6:]))),
         }
         for m in SUMMARY_ROW_RE.finditer(text)
     ]
 
+    reasons = {}
+    gaps = {}
     flagged_videos, brand_deals = [], []
     for card_m in CARD_RE.finditer(text):
         username, body = unesc(card_m.group(1)), card_m.group(2)
+
+        reason_m = REJECT_REASON_RE.search(body)
+        if reason_m:
+            reasons[username] = unesc(reason_m.group(1))
+
+        gap_m = VISION_GAP_RE.search(body)
+        if gap_m:
+            gaps[username] = f"{gap_m.group(1)}/{gap_m.group(2)} videos not analyzed"
 
         for row_m in FLAG_ROW_RE.finditer(body):
             badges_html, evidence, url = row_m.groups()
@@ -87,17 +108,22 @@ def parse_report(text: str):
                 "url": url,
             })
 
+    for r in summary:
+        r["reason"] = reasons.get(r["username"], "")
+        r["gaps"] = gaps.get(r["username"], "")
+
     return summary, flagged_videos, brand_deals
 
 
 def write_csv(summary, path):
-    header = ["Influencer", "Posts analyzed (12mo)", "Brand deals", "Brands mentioned"] + CATS
+    header = ["Influencer", "Status", "Reason", "Analysis gaps", "Posts analyzed (12mo)",
+              "Brand deals", "Brands mentioned"] + CATS
     with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(header)
         for r in summary:
-            w.writerow([r["username"], r["posts"], r["deals"], r["brands"]]
-                       + [r["cats"][c] for c in CATS])
+            w.writerow([r["username"], r["status"], r["reason"], r["gaps"], r["posts"],
+                        r["deals"], r["brands"]] + [r["cats"][c] for c in CATS])
     print(f"Wrote {path}")
 
 
@@ -106,16 +132,16 @@ def write_xlsx(summary, flagged_videos, brand_deals, path):
 
     ws = wb.active
     ws.title = "Summary"
-    header = ["Influencer", "Posts analyzed (12mo)", "Brand deals", "Brands mentioned",
-              "Flagged videos"] + CATS
+    header = ["Influencer", "Status", "Reason", "Analysis gaps", "Posts analyzed (12mo)",
+              "Brand deals", "Brands mentioned", "Flagged videos"] + CATS
     ws.append(header)
     for cell in ws[1]:
         cell.font = Font(bold=True)
     for r in summary:
-        ws.append([r["username"], r["posts"], r["deals"], r["brands"], r["flagged"]]
-                   + [r["cats"][c] for c in CATS])
+        ws.append([r["username"], r["status"], r["reason"], r["gaps"], r["posts"], r["deals"],
+                   r["brands"], r["flagged"]] + [r["cats"][c] for c in CATS])
     ws.freeze_panes = "A2"
-    for col, width in zip(ws.columns, [22, 18, 12, 16, 14, 10, 10, 10, 10, 10]):
+    for col, width in zip(ws.columns, [22, 12, 34, 24, 18, 12, 16, 14, 10, 10, 10, 10, 10]):
         ws.column_dimensions[col[0].column_letter].width = width
 
     ws2 = wb.create_sheet("Flagged Videos")
@@ -141,13 +167,28 @@ def write_xlsx(summary, flagged_videos, brand_deals, path):
 
 
 def main():
+    usernames = {u.lstrip("@") for u in sys.argv[1:]}
+
     text = config.OUTPUT_HTML.read_text(encoding="utf-8")
     summary, flagged_videos, brand_deals = parse_report(text)
     if not summary:
         raise SystemExit("No summary rows found — is influencer_report.html up to date?")
 
-    write_csv(summary, config.ROOT / "influencer_report.csv")
-    write_xlsx(summary, flagged_videos, brand_deals, config.ROOT / "influencer_report.xlsx")
+    if usernames:
+        missing = usernames - {r["username"] for r in summary}
+        if missing:
+            raise SystemExit(f"Not found in report: {', '.join(sorted(missing))}")
+        summary = [r for r in summary if r["username"] in usernames]
+        flagged_videos = [r for r in flagged_videos if r["username"] in usernames]
+        brand_deals = [r for r in brand_deals if r["username"] in usernames]
+        csv_path = config.ROOT / "influencer_report_selected.csv"
+        xlsx_path = config.ROOT / "influencer_report_selected.xlsx"
+    else:
+        csv_path = config.ROOT / "influencer_report.csv"
+        xlsx_path = config.ROOT / "influencer_report.xlsx"
+
+    write_csv(summary, csv_path)
+    write_xlsx(summary, flagged_videos, brand_deals, xlsx_path)
 
 
 if __name__ == "__main__":

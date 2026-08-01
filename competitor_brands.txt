@@ -1,0 +1,4 @@
+# One competitor brand/handle per line (case-insensitive).
+# Lines starting with # are ignored.
+# Matched against @mentions, tagged accounts, and caption text found during
+# the text pass. Any match auto-rejects the profile before the vision pass.
