@@ -22,6 +22,7 @@ from datetime import datetime
 import anthropic
 
 import config
+import export_report
 from scraper import scrape_profile
 from analyzer import (
     detect_brand_deals, detect_content, detect_competitor,
@@ -385,6 +386,15 @@ def write_report(rows: list[dict], vision_complete: bool):
     config.OUTPUT_HTML.write_text(doc, encoding="utf-8")
 
 
+def export_current_report():
+    """Re-derive influencer_report.csv/.xlsx from the HTML just written."""
+    text = config.OUTPUT_HTML.read_text(encoding="utf-8")
+    summary, flagged_videos, brand_deals = export_report.parse_report(text)
+    export_report.write_csv(summary, config.ROOT / "influencer_report.csv")
+    export_report.write_xlsx(summary, flagged_videos, brand_deals,
+                             config.ROOT / "influencer_report.xlsx")
+
+
 # ---------------------------------------------------------------------------
 def main():
     if not config.APIFY_TOKEN or not config.ANTHROPIC_API_KEY:
@@ -417,7 +427,8 @@ def main():
     print(f"\nText pass done in {format_duration(text_elapsed)}.")
 
     write_report(rows, vision_complete=False)
-    print(f"Brand-deal report written to {config.OUTPUT_HTML} — open it now, "
+    export_current_report()
+    print(f"Brand-deal report written to {config.OUTPUT_HTML} (+ .csv/.xlsx) — open it now, "
           f"vision pass continues below.\n")
 
     pending_rows = [r for r in rows if not r["rejected"]]
@@ -455,7 +466,8 @@ def main():
     for row in rows:
         row.pop("_video_posts", None)
     write_report(rows, vision_complete=True)
-    print(f"Full report written to {config.OUTPUT_HTML}")
+    export_current_report()
+    print(f"Full report written to {config.OUTPUT_HTML} (+ .csv/.xlsx)")
 
 
 if __name__ == "__main__":
