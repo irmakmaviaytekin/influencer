@@ -7,8 +7,10 @@ profanity is visible in on-screen text/captions - spoken swearing is not detecte
 """
 import base64
 import json
+import os
 import re
 import tempfile
+import time
 
 import cv2
 import requests
@@ -74,18 +76,29 @@ def detect_competitor(caption: str, brands: set[str], competitors: set[str]) -> 
 # ---------------------------------------------------------------------------
 # Video frame sampling
 # ---------------------------------------------------------------------------
+MAX_DOWNLOAD_SECONDS = 45  # hard wall-clock cap, independent of per-read timeouts
+
+
 def _download_video(url: str) -> str | None:
     if not url:
         return None
+    start = time.monotonic()
     try:
-        r = requests.get(url, timeout=60, stream=True)
+        r = requests.get(url, timeout=15, stream=True)
         r.raise_for_status()
+        tmp = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
+        for chunk in r.iter_content(chunk_size=1 << 16):
+            # A connection that trickles data slowly (e.g. throttled by the
+            # CDN) never hits requests' per-read timeout, so cap total time
+            # explicitly instead of trusting timeout= alone.
+            if time.monotonic() - start > MAX_DOWNLOAD_SECONDS:
+                tmp.close()
+                os.unlink(tmp.name)
+                return None
+            tmp.write(chunk)
+        tmp.close()
     except requests.RequestException:
         return None
-    tmp = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
-    for chunk in r.iter_content(chunk_size=1 << 16):
-        tmp.write(chunk)
-    tmp.close()
     return tmp.name
 
 

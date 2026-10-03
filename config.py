@@ -26,6 +26,12 @@ MAX_POSTS_PER_PROFILE = 200         # safety cap per profile
 VISION_MODEL = "claude-sonnet-4-5"  # any Anthropic vision-capable model
 FRAMES_PER_VIDEO = 6                # evenly-sampled frames sent to the model
 FRAME_MAX_WIDTH = 768               # downscale frames before upload (px)
+# Cap on videos analyzed per profile - None means analyze every video. Set to
+# a small number under time pressure to get thin-but-complete coverage across
+# every profile instead of full coverage of only a few (download bandwidth is
+# the bottleneck, not frame count, so this is the only lever that actually
+# reduces total time). Videos are taken in scrape order (most recent first).
+MAX_VIDEOS_PER_PROFILE = None
 
 # --- Brand-deal detection ---
 # Caption signals that indicate a paid partnership.

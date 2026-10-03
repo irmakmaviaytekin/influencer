@@ -105,6 +105,9 @@ def text_pass(username: str, competitors: set[str]) -> dict:
         if post.get("video_url"):
             video_posts.append(post)
 
+    if config.MAX_VIDEOS_PER_PROFILE is not None:
+        video_posts = video_posts[:config.MAX_VIDEOS_PER_PROFILE]
+
     return {
         "username": username,
         "posts_analyzed": len(posts),
@@ -144,7 +147,11 @@ def vision_pass(row: dict, client: anthropic.Anthropic) -> None:
     failed = 0
 
     for post in video_posts:
-        result = detect_content(post, client)
+        try:
+            result = detect_content(post, client)
+        except Exception:  # noqa: BLE001 - one bad video must not sink the profile
+            failed += 1
+            continue
         if result["error"]:
             failed += 1
             continue
@@ -452,6 +459,11 @@ def main():
             print(f"  FAILED (vision): {row['username']}")
             traceback.print_exc()
             row["vision_error"] = str(e)
+
+        # Persist after every profile, not just at the end - an interrupted run
+        # (crash, kill, network outage) must not lose already-completed analysis.
+        write_report(rows, vision_complete=False)
+        export_current_report()
 
     vision_elapsed = time.time() - vision_start
     total_failed_videos = sum(r["vision_failed_count"] for r in pending_rows)
