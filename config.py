@@ -33,6 +33,17 @@ FRAME_MAX_WIDTH = 768               # downscale frames before upload (px)
 # reduces total time). Videos are taken in scrape order (most recent first).
 MAX_VIDEOS_PER_PROFILE = None
 
+# --- Parallelism ---
+# Profiles scraped at once in the text pass (each is a separate Apify run).
+SCRAPE_WORKERS = 4
+# Videos processed at once in the vision pass, shared across all profiles.
+# Each worker downloads, samples frames and makes one vision call. Too high
+# and downloads split the bandwidth and hit MAX_DOWNLOAD_SECONDS, or vision
+# calls hit the API rate limit.
+VIDEO_WORKERS = 8
+# SDK retries (with backoff) for rate-limited or failed vision calls.
+API_MAX_RETRIES = 5
+
 # --- Brand-deal detection ---
 # Caption signals that indicate a paid partnership.
 DEAL_HASHTAGS = ["#ad", "#sponsored", "#paidpartnership", "#partner",

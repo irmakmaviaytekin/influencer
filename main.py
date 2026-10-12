@@ -18,6 +18,7 @@ import json
 import sys
 import time
 import traceback
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
 import anthropic
@@ -141,42 +142,44 @@ def failed_row(username: str, reason: str) -> dict:
 # ---------------------------------------------------------------------------
 # Vision pass
 # ---------------------------------------------------------------------------
-def vision_pass(row: dict, client: anthropic.Anthropic) -> None:
-    video_posts = row.get("_video_posts", [])
+def analyze_video(post: dict, client: anthropic.Anthropic) -> dict:
+    """Analyze one video. Runs in a worker thread and never raises - any
+    failure is returned as `error`, which the report shows as "not analyzed"."""
+    start = time.monotonic()
+    try:
+        result = detect_content(post, client)
+    except Exception as e:  # noqa: BLE001 - one bad video must not sink the profile
+        result = {"error": f"unexpected error: {e}", "categories": None, "metrics": {}}
+    content = result["categories"]
+    hits = ([] if result["error"]
+            else [c for c in CONTENT_CATEGORIES if content[c]["present"]])
+    return {"url": post["url"], "error": result["error"], "hits": hits,
+            "evidence": {c: content[c]["evidence"] for c in hits},
+            "total_s": time.monotonic() - start, **result["metrics"]}
+
+
+def apply_video_results(row: dict, records: list[dict]) -> None:
+    """Fold a profile's per-video results (in post order) into its report row."""
     cat_counts = {c: 0 for c in CONTENT_CATEGORIES}
     flag_details = []
-    video_metrics = []
     failed = 0
 
-    for post in video_posts:
-        start = time.monotonic()
-        try:
-            result = detect_content(post, client)
-        except Exception as e:  # noqa: BLE001 - one bad video must not sink the profile
-            result = {"error": f"unexpected error: {e}", "categories": None, "metrics": {}}
-        content = result["categories"]
-        hits = ([] if result["error"]
-                else [c for c in CONTENT_CATEGORIES if content[c]["present"]])
-        video_metrics.append({"url": post["url"], "error": result["error"], "hits": hits,
-                              "total_s": time.monotonic() - start, **result["metrics"]})
-        if result["error"]:
+    for rec in records:
+        if rec["error"]:
             failed += 1
             continue
-        if hits:
-            for c in hits:
+        if rec["hits"]:
+            for c in rec["hits"]:
                 cat_counts[c] += 1
-            flag_details.append({
-                "url": post["url"],
-                "hits": hits,
-                "evidence": {c: content[c]["evidence"] for c in hits},
-            })
+            flag_details.append({"url": rec["url"], "hits": rec["hits"],
+                                 "evidence": rec["evidence"]})
 
     row["cat_counts"] = cat_counts
     row["flagged_video_count"] = len(flag_details)
     row["flag_details"] = flag_details
     row["vision_run"] = True
     row["vision_failed_count"] = failed
-    row["_video_metrics"] = video_metrics
+    row["_video_metrics"] = records
 
 
 # ---------------------------------------------------------------------------
@@ -420,7 +423,9 @@ def write_run_metrics(rows: list[dict], started: datetime, text_s: float,
         "started": started.isoformat(timespec="seconds"),
         "profiles": [r["username"] for r in rows],
         "settings": {"vision_model": config.VISION_MODEL,
-                     "frames_per_video": config.FRAMES_PER_VIDEO},
+                     "frames_per_video": config.FRAMES_PER_VIDEO,
+                     "scrape_workers": config.SCRAPE_WORKERS,
+                     "video_workers": config.VIDEO_WORKERS},
         "text_pass_s": round(text_s, 1),
         "vision_pass_s": round(vision_s, 1),
         "total_s": round(text_s + vision_s, 1),
@@ -449,27 +454,37 @@ def main():
 
     profiles = sys.argv[1:] or load_profiles()
     competitors = load_competitors()
-    client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    # Concurrent requests can hit rate limits; the SDK backs off and retries 429s.
+    client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY,
+                                 max_retries=config.API_MAX_RETRIES)
     run_started = datetime.now()
 
     # --- Text pass ---
-    print(f"--- Text pass: brand deals + competitor screen ({len(profiles)} profiles) ---")
+    # Profiles are scraped in parallel; rows keep the input order.
+    print(f"--- Text pass: brand deals + competitor screen ({len(profiles)} profiles, "
+          f"{config.SCRAPE_WORKERS} at a time) ---")
     text_start = time.time()
-    rows = []
-    for i, username in enumerate(profiles, 1):
-        print(f"[{i}/{len(profiles)}] {username} ...", flush=True)
-        try:
-            row = text_pass(username, competitors)
-            if row["rejected"]:
-                print(f"    REJECTED: {row['reject_reason']}", flush=True)
-            else:
-                print(f"    {row['posts_analyzed']} posts | {row['deal_count']} deals | "
-                      f"{len(row['_video_posts'])} videos pending vision", flush=True)
-            rows.append(row)
-        except Exception:  # noqa: BLE001 - keep going if one profile fails
-            print(f"  FAILED: {username}")
-            traceback.print_exc()
-            rows.append(failed_row(username, "scrape/analysis error"))
+    rows: list[dict] = [None] * len(profiles)
+    with ThreadPoolExecutor(config.SCRAPE_WORKERS) as pool:
+        futures = {pool.submit(text_pass, u, competitors): i
+                   for i, u in enumerate(profiles)}
+        for done, fut in enumerate(as_completed(futures), 1):
+            i = futures[fut]
+            username = profiles[i]
+            try:
+                row = fut.result()
+                if row["rejected"]:
+                    print(f"[{done}/{len(profiles)}] {username}: REJECTED: "
+                          f"{row['reject_reason']}", flush=True)
+                else:
+                    print(f"[{done}/{len(profiles)}] {username}: {row['posts_analyzed']} posts | "
+                          f"{row['deal_count']} deals | {len(row['_video_posts'])} videos "
+                          f"pending vision", flush=True)
+            except Exception:  # noqa: BLE001 - keep going if one profile fails
+                print(f"[{done}/{len(profiles)}] {username}: FAILED")
+                traceback.print_exc()
+                row = failed_row(username, "scrape/analysis error")
+            rows[i] = row
 
     text_elapsed = time.time() - text_start
     print(f"\nText pass done in {format_duration(text_elapsed)}.")
@@ -481,18 +496,25 @@ def main():
 
     pending_rows = [r for r in rows if not r["rejected"]]
     pending_videos = sum(len(r["_video_posts"]) for r in pending_rows)
-    est_seconds = pending_videos * config.EST_SECONDS_PER_VIDEO
+    est_seconds = pending_videos * config.EST_SECONDS_PER_VIDEO / config.VIDEO_WORKERS
     print(f"Estimated vision-pass time: ~{format_duration(est_seconds)} "
           f"({pending_videos} videos across {len(pending_rows)} profile(s))\n")
 
     # --- Vision pass ---
-    print(f"--- Vision pass: content flagging ---")
+    # All videos from all profiles go through one shared pool of workers
+    # (download + frames + vision call each). Profiles are queued in order, so
+    # they finish roughly in order; each is written to the report as it finishes.
+    print(f"--- Vision pass: content flagging ({config.VIDEO_WORKERS} videos at a time) ---")
     vision_start = time.time()
-    for row in pending_rows:
-        print(f"[{row['username']}] analyzing {len(row['_video_posts'])} videos ...", flush=True)
+    records = [[None] * len(r["_video_posts"]) for r in pending_rows]
+    remaining = [len(r["_video_posts"]) for r in pending_rows]
+
+    def finish_profile(p: int) -> None:
+        row = pending_rows[p]
         try:
-            vision_pass(row, client)
-            msg = f"    {row['flagged_video_count']} flagged videos"
+            apply_video_results(row, records[p])
+            msg = (f"[{row['username']}] done: {len(records[p])} videos | "
+                   f"{row['flagged_video_count']} flagged")
             if row["vision_failed_count"]:
                 msg += f" | {row['vision_failed_count']} could not be analyzed (download/link error)"
             print(msg, flush=True)
@@ -500,11 +522,31 @@ def main():
             print(f"  FAILED (vision): {row['username']}")
             traceback.print_exc()
             row["vision_error"] = str(e)
-
         # Persist after every profile, not just at the end - an interrupted run
         # (crash, kill, network outage) must not lose already-completed analysis.
         write_report(rows, vision_complete=False)
         export_current_report()
+
+    for p, n in enumerate(remaining):
+        if n == 0:
+            finish_profile(p)
+
+    pool = ThreadPoolExecutor(config.VIDEO_WORKERS)
+    try:
+        futures = {pool.submit(analyze_video, post, client): (p, v)
+                   for p, row in enumerate(pending_rows)
+                   for v, post in enumerate(row["_video_posts"])}
+        for done, fut in enumerate(as_completed(futures), 1):
+            p, v = futures[fut]
+            records[p][v] = fut.result()  # analyze_video never raises
+            remaining[p] -= 1
+            if remaining[p] == 0:
+                finish_profile(p)
+            elif done % 10 == 0:
+                print(f"    {done}/{len(futures)} videos analyzed", flush=True)
+    finally:
+        # On Ctrl-C, drop queued videos instead of waiting for all of them.
+        pool.shutdown(wait=True, cancel_futures=True)
 
     vision_elapsed = time.time() - vision_start
     total_failed_videos = sum(r["vision_failed_count"] for r in pending_rows)
