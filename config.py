@@ -49,6 +49,15 @@ DEAL_PHRASES = ["paid partnership", "paid promotion", "sponsored by",
 # (e.g. "vodka" matching inside "spicy vodka pizza").
 COMPETITOR_BRANDS_FILE = ROOT / "competitor_brands.txt"
 
+# --- Run metrics ---
+# Every run writes runs/<timestamp>.json: phase times, per-video timings,
+# token usage, cost and per-video results, so runs can be compared.
+RUNS_DIR = ROOT / "runs"
+# USD per million tokens for VISION_MODEL (images are billed as input tokens).
+# Update these if VISION_MODEL changes.
+PRICE_INPUT_PER_MTOK = 3.00
+PRICE_OUTPUT_PER_MTOK = 15.00
+
 # --- Timing estimate ---
 # Rough seconds per video (download + frame sample + vision call), used to
 # estimate vision-pass duration after the text pass completes.

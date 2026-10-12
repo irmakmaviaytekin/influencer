@@ -14,6 +14,7 @@ Usage:
     python main.py user1 user2     # only these usernames
 """
 import html
+import json
 import sys
 import time
 import traceback
@@ -144,19 +145,23 @@ def vision_pass(row: dict, client: anthropic.Anthropic) -> None:
     video_posts = row.get("_video_posts", [])
     cat_counts = {c: 0 for c in CONTENT_CATEGORIES}
     flag_details = []
+    video_metrics = []
     failed = 0
 
     for post in video_posts:
+        start = time.monotonic()
         try:
             result = detect_content(post, client)
-        except Exception:  # noqa: BLE001 - one bad video must not sink the profile
-            failed += 1
-            continue
+        except Exception as e:  # noqa: BLE001 - one bad video must not sink the profile
+            result = {"error": f"unexpected error: {e}", "categories": None, "metrics": {}}
+        content = result["categories"]
+        hits = ([] if result["error"]
+                else [c for c in CONTENT_CATEGORIES if content[c]["present"]])
+        video_metrics.append({"url": post["url"], "error": result["error"], "hits": hits,
+                              "total_s": time.monotonic() - start, **result["metrics"]})
         if result["error"]:
             failed += 1
             continue
-        content = result["categories"]
-        hits = [c for c in CONTENT_CATEGORIES if content[c]["present"]]
         if hits:
             for c in hits:
                 cat_counts[c] += 1
@@ -171,6 +176,7 @@ def vision_pass(row: dict, client: anthropic.Anthropic) -> None:
     row["flag_details"] = flag_details
     row["vision_run"] = True
     row["vision_failed_count"] = failed
+    row["_video_metrics"] = video_metrics
 
 
 # ---------------------------------------------------------------------------
@@ -402,6 +408,40 @@ def export_current_report():
                              config.ROOT / "influencer_report.xlsx")
 
 
+def write_run_metrics(rows: list[dict], started: datetime, text_s: float,
+                      vision_s: float) -> dict:
+    """Save timing, token usage, cost and per-video results to runs/<timestamp>.json."""
+    videos = [v for r in rows for v in r.get("_video_metrics", [])]
+    input_tokens = sum(v.get("input_tokens", 0) for v in videos)
+    output_tokens = sum(v.get("output_tokens", 0) for v in videos)
+    cost = (input_tokens * config.PRICE_INPUT_PER_MTOK
+            + output_tokens * config.PRICE_OUTPUT_PER_MTOK) / 1_000_000
+    summary = {
+        "started": started.isoformat(timespec="seconds"),
+        "profiles": [r["username"] for r in rows],
+        "settings": {"vision_model": config.VISION_MODEL,
+                     "frames_per_video": config.FRAMES_PER_VIDEO},
+        "text_pass_s": round(text_s, 1),
+        "vision_pass_s": round(vision_s, 1),
+        "total_s": round(text_s + vision_s, 1),
+        "videos": len(videos),
+        "videos_failed": sum(1 for v in videos if v["error"]),
+        "videos_flagged": sum(1 for v in videos if v["hits"]),
+        "sum_download_s": round(sum(v.get("download_s", 0) for v in videos), 1),
+        "sum_frames_s": round(sum(v.get("frames_s", 0) for v in videos), 1),
+        "sum_vision_s": round(sum(v.get("vision_s", 0) for v in videos), 1),
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "vision_cost_usd": round(cost, 4),
+        "per_video": videos,
+    }
+    config.RUNS_DIR.mkdir(exist_ok=True)
+    path = config.RUNS_DIR / f"{started.strftime('%Y%m%d-%H%M%S')}.json"
+    path.write_text(json.dumps(summary, indent=2))
+    summary["path"] = path
+    return summary
+
+
 # ---------------------------------------------------------------------------
 def main():
     if not config.APIFY_TOKEN or not config.ANTHROPIC_API_KEY:
@@ -410,6 +450,7 @@ def main():
     profiles = sys.argv[1:] or load_profiles()
     competitors = load_competitors()
     client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    run_started = datetime.now()
 
     # --- Text pass ---
     print(f"--- Text pass: brand deals + competitor screen ({len(profiles)} profiles) ---")
@@ -480,6 +521,11 @@ def main():
     write_report(rows, vision_complete=True)
     export_current_report()
     print(f"Full report written to {config.OUTPUT_HTML} (+ .csv/.xlsx)")
+
+    m = write_run_metrics(rows, run_started, text_elapsed, vision_elapsed)
+    print(f"Run metrics: {format_duration(m['total_s'])} total | {m['videos']} videos "
+          f"({m['videos_failed']} failed, {m['videos_flagged']} flagged) | "
+          f"vision cost ${m['vision_cost_usd']:.2f} -> {m['path']}")
 
 
 if __name__ == "__main__":

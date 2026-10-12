@@ -162,18 +162,30 @@ def detect_content(post: dict, client: anthropic.Anthropic) -> dict:
     successful analysis that found nothing, and callers must not treat the two
     the same way (a download failure is not evidence of a clean profile).
     """
+    # Timing and token usage per stage, so runs can be compared for speed and cost.
+    metrics = {"download_s": 0.0, "frames_s": 0.0, "vision_s": 0.0,
+               "input_tokens": 0, "output_tokens": 0}
+
     video_url = post.get("video_url")
     if not video_url:
-        return {"error": None, "categories": _empty_result()}
+        return {"error": None, "categories": _empty_result(), "metrics": metrics}
 
+    t = time.monotonic()
     path = _download_video(video_url)
+    metrics["download_s"] = time.monotonic() - t
     if not path:
         return {"error": "video download failed (link may have expired - try a fresh scrape)",
-                "categories": _empty_result()}
+                "categories": _empty_result(), "metrics": metrics}
 
-    frames = _sample_frames(path, config.FRAMES_PER_VIDEO)
+    t = time.monotonic()
+    try:
+        frames = _sample_frames(path, config.FRAMES_PER_VIDEO)
+    finally:
+        os.unlink(path)  # temp video is only needed for frame sampling
+    metrics["frames_s"] = time.monotonic() - t
     if not frames:
-        return {"error": "no frames extracted", "categories": _empty_result()}
+        return {"error": "no frames extracted", "categories": _empty_result(),
+                "metrics": metrics}
 
     content = [{"type": "text", "text": _CONTENT_PROMPT}]
     for f in frames:
@@ -186,17 +198,23 @@ def detect_content(post: dict, client: anthropic.Anthropic) -> dict:
             },
         })
 
+    t = time.monotonic()
     try:
         msg = client.messages.create(
             model=config.VISION_MODEL,
             max_tokens=400,
             messages=[{"role": "user", "content": content}],
         )
+        metrics["input_tokens"] = msg.usage.input_tokens
+        metrics["output_tokens"] = msg.usage.output_tokens
         text = msg.content[0].text.strip()
         text = re.sub(r"^```(?:json)?|```$", "", text, flags=re.MULTILINE).strip()
         parsed = json.loads(text)
     except Exception as e:  # noqa: BLE001 - surface errors in the report
-        return {"error": f"vision error: {e}", "categories": _empty_result()}
+        metrics["vision_s"] = time.monotonic() - t
+        return {"error": f"vision error: {e}", "categories": _empty_result(),
+                "metrics": metrics}
+    metrics["vision_s"] = time.monotonic() - t
 
     result = _empty_result()
     for cat in CONTENT_CATEGORIES:
@@ -208,4 +226,4 @@ def detect_content(post: dict, client: anthropic.Anthropic) -> dict:
             }
         else:
             result[cat] = {"present": bool(entry), "evidence": ""}
-    return {"error": None, "categories": result}
+    return {"error": None, "categories": result, "metrics": metrics}

@@ -14,3 +14,6 @@ test_report.xlsx
 # Vendor sample reports (third-party material, kept locally for reference)
 Advanced Brand Safety Report.pdf
 SampleInfluencerVettingReport.pdf
+
+# Per-run metrics (contain post URLs from scraped data)
+runs/
