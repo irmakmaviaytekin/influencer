@@ -1,3 +1,16 @@
 .env
 __pycache__/
 *.pyc
+
+# Scraped Instagram data (real people's posts) — never commit
+cache/
+
+# Generated reports (contain scraped data, overwritten each run)
+influencer_report*.html
+influencer_report*.csv
+influencer_report*.xlsx
+test_report.xlsx
+
+# Vendor sample reports (third-party material, kept locally for reference)
+Advanced Brand Safety Report.pdf
+SampleInfluencerVettingReport.pdf

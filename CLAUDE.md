@@ -68,7 +68,8 @@ with evidence, approve/override with a note (logged), export a report for legal.
 ## Roadmap
 
 - **Phase 0 — Cleanup.** Rotate the old Apify and Anthropic keys (they're in git history).
-  Stop tracking `cache/`, `__pycache__/`, the vendor sample PDFs and generated reports.
+  ~~Stop tracking `cache/`, `__pycache__/`, the vendor sample PDFs and generated reports.~~
+  Done (now in `.gitignore`), but they are still in git history.
 - **Phase 1 — Fast, complete engine.**
   - Process profiles and video downloads in parallel (biggest expected win).
   - Add audio transcription (spoken swearing is currently undetected; also catches spoken sponsors).
