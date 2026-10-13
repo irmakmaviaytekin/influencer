@@ -17,3 +17,6 @@ SampleInfluencerVettingReport.pdf
 
 # Per-run metrics (contain post URLs from scraped data)
 runs/
+
+# Per-job reports (contain scraped data)
+reports/

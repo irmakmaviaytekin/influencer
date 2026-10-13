@@ -12,6 +12,10 @@ visible immediately) and again after the vision pass completes.
 Usage:
     python main.py                 # all profiles in profiles.txt
     python main.py user1 user2     # only these usernames
+    python main.py --text-only ... # stop after the text pass (shows vision estimate)
+
+Per-job settings come from the environment (see config.py): CATEGORY_SET,
+REVIEW_BRANDS_FILE, REPORT_NAME.
 """
 import html
 import json
@@ -27,25 +31,12 @@ import config
 import export_report
 from scraper import scrape_profile
 from analyzer import (
-    detect_brand_deals, detect_content, detect_competitor,
+    detect_brand_deals, detect_content, detect_competitor, detect_review_brand,
     CONTENT_CATEGORIES,
 )
 
-CAT_LABELS = {
-    "drinking": "Drinking",
-    "smoking": "Smoking",
-    "partying": "Partying",
-    "gambling": "Gambling",
-    "swearing": "Swearing",
-}
-# Badge colors per category.
-CAT_COLORS = {
-    "drinking": "#c0392b",
-    "smoking": "#8e44ad",
-    "partying": "#d35400",
-    "gambling": "#16704a",
-    "swearing": "#2c3e50",
-}
+CAT_LABELS = {k: c["label"] for k, c in config.CONTENT_CATEGORIES.items()}
+CAT_COLORS = {k: c["color"] for k, c in config.CONTENT_CATEGORIES.items()}
 
 STATUS_LABELS = {"rejected": "Rejected", "pending": "Pending", "reviewed": "Reviewed",
                   "error": "Error"}
@@ -67,6 +58,10 @@ def load_competitors() -> set[str]:
     return {b.lower() for b in load_list(config.COMPETITOR_BRANDS_FILE)}
 
 
+def load_review_brands() -> list[str]:
+    return load_list(config.REVIEW_BRANDS_FILE)
+
+
 def format_duration(seconds: float) -> str:
     seconds = max(0, int(round(seconds)))
     m, s = divmod(seconds, 60)
@@ -81,7 +76,7 @@ def format_duration(seconds: float) -> str:
 # ---------------------------------------------------------------------------
 # Text pass
 # ---------------------------------------------------------------------------
-def text_pass(username: str, competitors: set[str]) -> dict:
+def text_pass(username: str, competitors: set[str], review_brands: list[str]) -> dict:
     posts = scrape_profile(username)
     self_handle = username.lower()
 
@@ -95,8 +90,10 @@ def text_pass(username: str, competitors: set[str]) -> dict:
         if deal["is_deal"]:
             brands = [b for b in deal["brands"] if b.lower() != self_handle]
             all_brands.update(brands)
+            # Deals with a review brand are flagged for a person, never rejected.
+            review = detect_review_brand(post.get("caption", ""), brands, review_brands)
             deal_details.append({"url": post["url"], "brands": brands,
-                                 "signals": deal["signals"]})
+                                 "signals": deal["signals"], "review": review})
 
         if reject_reason is None:
             post_brands = {b.lower() for b in deal["brands"]}
@@ -116,6 +113,7 @@ def text_pass(username: str, competitors: set[str]) -> dict:
         "deal_count": len(deal_details),
         "brands": sorted(all_brands),
         "deal_details": deal_details,
+        "review_deals": [d for d in deal_details if d["review"]],
         "rejected": reject_reason is not None,
         "reject_reason": reject_reason,
         "vision_run": False,
@@ -130,9 +128,12 @@ def text_pass(username: str, competitors: set[str]) -> dict:
 
 
 def failed_row(username: str, reason: str) -> dict:
+    """Row for a profile that could not be scraped - shown as an error, never as
+    rejected or clean."""
     return {
-        "username": username, "posts_analyzed": 0, "deal_count": 0,
-        "brands": [], "deal_details": [], "rejected": True, "reject_reason": reason,
+        "username": username, "posts_analyzed": 0, "deal_count": 0, "scrape_error": reason,
+        "brands": [], "deal_details": [], "review_deals": [],
+        "rejected": False, "reject_reason": None,
         "vision_run": False, "vision_error": None, "video_count": 0, "vision_failed_count": 0,
         "cat_counts": {c: 0 for c in CONTENT_CATEGORIES},
         "flagged_video_count": 0, "flag_details": [], "_video_posts": [],
@@ -186,6 +187,8 @@ def apply_video_results(row: dict, records: list[dict]) -> None:
 # HTML report
 # ---------------------------------------------------------------------------
 def _status(r: dict) -> str:
+    if r.get("scrape_error"):
+        return "error"
     if r["rejected"]:
         return "rejected"
     if r.get("vision_error"):
@@ -207,6 +210,9 @@ def _profile_card(r: dict) -> str:
     if status == "rejected":
         banner = (f'<p class="status-banner rejected">Auto-rejected — '
                   f'{html.escape(r["reject_reason"])}</p>')
+    elif r.get("scrape_error"):
+        banner = (f'<p class="status-banner error">Scrape failed — '
+                  f'{html.escape(r["scrape_error"])} (check the username)</p>')
     elif status == "error":
         banner = (f'<p class="status-banner error">Vision pass failed — '
                   f'{html.escape(r["vision_error"])}</p>')
@@ -231,6 +237,8 @@ def _profile_card(r: dict) -> str:
     # Flagged videos table.
     if status == "rejected":
         flags_html = '<p class="none">Not analyzed — auto-rejected before the vision pass.</p>'
+    elif r.get("scrape_error"):
+        flags_html = '<p class="none">Not analyzed — the profile could not be scraped.</p>'
     elif status in ("pending", "error"):
         flags_html = '<p class="none">Vision pass not yet complete for this profile.</p>'
     elif r["flag_details"]:
@@ -250,6 +258,22 @@ def _profile_card(r: dict) -> str:
             f'<tbody>{flag_rows}</tbody></table>')
     else:
         flags_html = '<p class="none">No flagged videos.</p>'
+
+    # Deals with a review brand (text pass) - flagged for a person to check.
+    if r.get("scrape_error"):
+        review_html = '<p class="none">Not checked — the profile could not be scraped.</p>'
+    elif r["review_deals"]:
+        review_rows = "".join(
+            f'<tr class="review"><td>{html.escape(d["review"])}</td>'
+            f'<td>{html.escape(", ".join(d["brands"]) or "—")}</td>'
+            f'<td><a href="{html.escape(d["url"])}" target="_blank">view&nbsp;post ↗</a>'
+            f'</td></tr>'
+            for d in r["review_deals"])
+        review_html = (
+            '<table class="detail"><thead><tr><th>Matched</th><th>Brands mentioned</th>'
+            f'<th>Link</th></tr></thead><tbody>{review_rows}</tbody></table>')
+    else:
+        review_html = '<p class="none">None found.</p>'
 
     # Brand deals (always available - computed in the text pass).
     if r["deal_details"]:
@@ -276,12 +300,16 @@ def _profile_card(r: dict) -> str:
           <span class="lbl">posts (12mo)</span></div>
         <div class="stat"><span class="num">{r['deal_count']}</span>
           <span class="lbl">brand deals</span></div>
+        <div class="stat"><span class="num">{len(r['review_deals'])}</span>
+          <span class="lbl">deals to review</span></div>
         <div class="stat"><span class="num">{flagged_stat_val}</span>
           <span class="lbl">flagged videos</span></div>
       </div>
       <div class="catstats">{counts_row}</div>
       <h3>Flagged videos</h3>
       {flags_html}
+      <h3>Deals to review</h3>
+      {review_html}
       <h3>Brand deals</h3>
       {deals_html}
     </section>"""
@@ -296,7 +324,20 @@ def _summary_row(r: dict) -> str:
     return (f'<tr><td class="uname"><a href="#{u}">@{u}</a></td>'
             f'<td class="status status-{status}">{STATUS_LABELS[status]}</td>'
             f'<td>{r["posts_analyzed"]}</td><td>{r["deal_count"]}</td>'
-            f'<td>{len(r["brands"])}</td><td>{r["flagged_video_count"]}</td>{cells}</tr>')
+            f'<td>{len(r["brands"])}</td>'
+            f'<td class="{"hot" if r["review_deals"] else ""}">{len(r["review_deals"])}</td>'
+            f'<td>{r["flagged_video_count"]}</td>{cells}</tr>')
+
+
+def _text_only_note() -> str:
+    labels = [f"<strong>{c['label']}</strong>" for c in config.CONTENT_CATEGORIES.values()
+              if c["text_only"]]
+    if not labels:
+        return ""
+    names = labels[0] if len(labels) == 1 else ", ".join(labels[:-1]) + " and " + labels[-1]
+    verb = "is" if len(labels) == 1 else "are"
+    return (f"{names} {verb} only checked in captions and on-screen text, "
+            f"not spoken audio.")
 
 
 def write_report(rows: list[dict], vision_complete: bool):
@@ -382,7 +423,7 @@ def write_report(rows: list[dict], vision_complete: bool):
   </header>
 
   <table class="summary">
-    <thead><tr><th>Influencer</th><th>Status</th><th>Posts</th><th>Deals</th><th>Brands</th>
+    <thead><tr><th>Influencer</th><th>Status</th><th>Posts</th><th>Deals</th><th>Brands</th><th>Deals to review</th>
       <th>Flagged</th>{cat_ths}</tr></thead>
     <tbody>{summary_rows}</tbody>
   </table>
@@ -391,11 +432,16 @@ def write_report(rows: list[dict], vision_complete: bool):
 
   <p class="note">
     Flags come from an AI vision model reviewing {config.FRAMES_PER_VIDEO} sampled
-    frames per video. They indicate content <em>worth reviewing</em>, not verified
-    fact — check the reasoning and the linked post. "Swearing" only detects profanity
-    visible in on-screen text, not spoken audio. "Rejected" profiles mentioned a
-    competitor brand in a caption/mention and never reached the vision pass — their
-    category counts are 0 because they were never analyzed.
+    frames per video plus the post caption. They indicate content <em>worth
+    reviewing</em>, not verified fact — check the reasoning and the linked post.
+    {_text_only_note()}
+    Only video posts are analyzed; photo and carousel posts are not checked for these
+    categories. Videos that could not be downloaded are counted as not analyzed, not
+    as clean. "Deals to review" are brand deals that mention a brand from this job's
+    review list (in a tagged/mentioned account or the caption) — flagged for a person
+    to check, not rejected. "Rejected" profiles mentioned a competitor brand in a
+    caption/mention and never reached the vision pass — their category counts are 0
+    because they were never analyzed.
   </p>
 </div></body></html>"""
 
@@ -403,12 +449,12 @@ def write_report(rows: list[dict], vision_complete: bool):
 
 
 def export_current_report():
-    """Re-derive influencer_report.csv/.xlsx from the HTML just written."""
+    """Re-derive the .csv/.xlsx next to the HTML report just written."""
     text = config.OUTPUT_HTML.read_text(encoding="utf-8")
-    summary, flagged_videos, brand_deals = export_report.parse_report(text)
-    export_report.write_csv(summary, config.ROOT / "influencer_report.csv")
-    export_report.write_xlsx(summary, flagged_videos, brand_deals,
-                             config.ROOT / "influencer_report.xlsx")
+    summary, flagged_videos, brand_deals, review_deals = export_report.parse_report(text)
+    export_report.write_csv(summary, config.OUTPUT_HTML.with_suffix(".csv"))
+    export_report.write_xlsx(summary, flagged_videos, brand_deals, review_deals,
+                             config.OUTPUT_HTML.with_suffix(".xlsx"))
 
 
 def write_run_metrics(rows: list[dict], started: datetime, text_s: float,
@@ -425,7 +471,10 @@ def write_run_metrics(rows: list[dict], started: datetime, text_s: float,
         "settings": {"vision_model": config.VISION_MODEL,
                      "frames_per_video": config.FRAMES_PER_VIDEO,
                      "scrape_workers": config.SCRAPE_WORKERS,
-                     "video_workers": config.VIDEO_WORKERS},
+                     "video_workers": config.VIDEO_WORKERS,
+                     "category_set": config.CATEGORY_SET,
+                     "review_brands_file": config.REVIEW_BRANDS_FILE.name,
+                     "report": str(config.OUTPUT_HTML)},
         "text_pass_s": round(text_s, 1),
         "vision_pass_s": round(vision_s, 1),
         "total_s": round(text_s + vision_s, 1),
@@ -452,8 +501,14 @@ def main():
     if not config.APIFY_TOKEN or not config.ANTHROPIC_API_KEY:
         sys.exit("Set APIFY_TOKEN and ANTHROPIC_API_KEY in your .env first.")
 
-    profiles = sys.argv[1:] or load_profiles()
+    args = sys.argv[1:]
+    text_only = "--text-only" in args
+    profiles = [a.lstrip("@") for a in args if a != "--text-only"] or load_profiles()
     competitors = load_competitors()
+    review_brands = load_review_brands()
+    print(f"Job: categories={config.CATEGORY_SET} ({', '.join(CAT_LABELS.values())}) | "
+          f"competitors={len(competitors)} | review brands={len(review_brands)} "
+          f"({config.REVIEW_BRANDS_FILE.name}) | report={config.OUTPUT_HTML}")
     # Concurrent requests can hit rate limits; the SDK backs off and retries 429s.
     client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY,
                                  max_retries=config.API_MAX_RETRIES)
@@ -466,7 +521,7 @@ def main():
     text_start = time.time()
     rows: list[dict] = [None] * len(profiles)
     with ThreadPoolExecutor(config.SCRAPE_WORKERS) as pool:
-        futures = {pool.submit(text_pass, u, competitors): i
+        futures = {pool.submit(text_pass, u, competitors, review_brands): i
                    for i, u in enumerate(profiles)}
         for done, fut in enumerate(as_completed(futures), 1):
             i = futures[fut]
@@ -478,12 +533,12 @@ def main():
                           f"{row['reject_reason']}", flush=True)
                 else:
                     print(f"[{done}/{len(profiles)}] {username}: {row['posts_analyzed']} posts | "
-                          f"{row['deal_count']} deals | {len(row['_video_posts'])} videos "
-                          f"pending vision", flush=True)
-            except Exception:  # noqa: BLE001 - keep going if one profile fails
-                print(f"[{done}/{len(profiles)}] {username}: FAILED")
+                          f"{row['deal_count']} deals ({len(row['review_deals'])} to review) | "
+                          f"{len(row['_video_posts'])} videos pending vision", flush=True)
+            except Exception as e:  # noqa: BLE001 - keep going if one profile fails
+                print(f"[{done}/{len(profiles)}] {username}: FAILED - {e}")
                 traceback.print_exc()
-                row = failed_row(username, "scrape/analysis error")
+                row = failed_row(username, str(e) or "scrape/analysis error")
             rows[i] = row
 
     text_elapsed = time.time() - text_start
@@ -494,11 +549,21 @@ def main():
     print(f"Brand-deal report written to {config.OUTPUT_HTML} (+ .csv/.xlsx) — open it now, "
           f"vision pass continues below.\n")
 
-    pending_rows = [r for r in rows if not r["rejected"]]
+    failed = [r["username"] for r in rows if r.get("scrape_error")]
+    if failed:
+        print(f"⚠ {len(failed)} profile(s) could not be scraped - check the spelling: "
+              f"{', '.join(failed)}")
+
+    pending_rows = [r for r in rows if not r["rejected"] and not r.get("scrape_error")]
     pending_videos = sum(len(r["_video_posts"]) for r in pending_rows)
     est_seconds = pending_videos * config.EST_SECONDS_PER_VIDEO / config.VIDEO_WORKERS
-    print(f"Estimated vision-pass time: ~{format_duration(est_seconds)} "
-          f"({pending_videos} videos across {len(pending_rows)} profile(s))\n")
+    print(f"Estimated vision-pass time: ~{format_duration(est_seconds)} with "
+          f"{config.VIDEO_WORKERS} at a time, up to "
+          f"~{format_duration(pending_videos * config.EST_SECONDS_PER_VIDEO)} if downloads "
+          f"don't speed up ({pending_videos} videos across {len(pending_rows)} profile(s))\n")
+    if text_only:
+        print("--text-only: stopping before the vision pass.")
+        return
 
     # --- Vision pass ---
     # All videos from all profiles go through one shared pool of workers

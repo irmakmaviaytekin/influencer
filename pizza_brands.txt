@@ -1,0 +1,15 @@
+# Review brands for pizza jobs: brand deals that mention one of these are
+# flagged for review in the text pass (never auto-rejected).
+# A term matches a mentioned/tagged handle if it appears anywhere in it
+# (ignoring spaces/punctuation), or the caption as a whole word.
+# "pizza" already covers every brand with pizza in its name or handle
+# (Pizza Hut, Pizza Pizza, Boston Pizza, @dreamcrustpizza...); list only
+# pizza brands whose names don't contain it.
+pizza
+pizzeria
+Domino's
+Papa John's
+Little Caesars
+Panago
+Freshslice
+Sbarro

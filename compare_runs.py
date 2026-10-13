@@ -65,7 +65,7 @@ def main():
         print("  none - identical flags")
 
     if args.reference:
-        _, ref_flags, _ = export_report.parse_report(Path(args.reference).read_text())
+        _, ref_flags, _, _ = export_report.parse_report(Path(args.reference).read_text())
         urls_a = {v["url"] for v in a["per_video"]}
         print(f"\nreference flags from {args.reference}:")
         for f in ref_flags:

@@ -66,6 +66,16 @@ def scrape_profile(username: str, use_cache: bool = True) -> list[dict]:
         run = client.actor(config.APIFY_ACTOR).call(run_input=run_input)
         run_id = run["id"] if isinstance(run, dict) else run.id
         raw = list(client.run(run_id).dataset().iterate_items())
+        # A misspelled, private or deleted profile returns no posts (or only
+        # error items). Fail instead of caching it, so it shows up as a scrape
+        # error rather than as a profile with nothing to flag.
+        posts_raw = [i for i in raw if not i.get("error")]
+        if not posts_raw:
+            errors = {f'{i.get("error")}: {i.get("errorDescription", "")}'.strip(": ")
+                      for i in raw if i.get("error")}
+            raise RuntimeError("no posts returned"
+                               + (f" ({'; '.join(sorted(errors))})" if errors else ""))
+        raw = posts_raw
         cache.write_text(json.dumps(raw, indent=2, default=str))
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=30 * config.MONTHS_LOOKBACK)
