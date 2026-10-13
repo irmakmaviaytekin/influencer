@@ -297,7 +297,7 @@ def _profile_card(r: dict) -> str:
       {banner}
       <div class="topstats">
         <div class="stat"><span class="num">{r['posts_analyzed']}</span>
-          <span class="lbl">posts (12mo)</span></div>
+          <span class="lbl">posts ({config.MONTHS_LOOKBACK}mo)</span></div>
         <div class="stat"><span class="num">{r['deal_count']}</span>
           <span class="lbl">brand deals</span></div>
         <div class="stat"><span class="num">{len(r['review_deals'])}</span>

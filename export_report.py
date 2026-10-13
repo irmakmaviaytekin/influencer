@@ -144,7 +144,7 @@ def _cats(summary) -> list[str]:
 
 def write_csv(summary, path):
     cats = _cats(summary)
-    header = ["Influencer", "Status", "Reason", "Analysis gaps", "Posts analyzed (12mo)",
+    header = ["Influencer", "Status", "Reason", "Analysis gaps", "Posts analyzed",
               "Brand deals", "Brands mentioned", "Deals to review"] + cats
     with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
@@ -162,7 +162,7 @@ def write_xlsx(summary, flagged_videos, brand_deals, review_deals, path):
 
     ws = wb.active
     ws.title = "Summary"
-    header = ["Influencer", "Status", "Reason", "Analysis gaps", "Posts analyzed (12mo)",
+    header = ["Influencer", "Status", "Reason", "Analysis gaps", "Posts analyzed",
               "Brand deals", "Brands mentioned", "Deals to review", "Flagged videos"] + cats
     ws.append(header)
     for cell in ws[1]:

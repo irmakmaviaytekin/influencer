@@ -23,11 +23,27 @@ OUTPUT_HTML = ROOT / f"{REPORT_NAME}.html"
 # --- Scraping ---
 # Apify actor that scrapes public Instagram profiles/posts.
 APIFY_ACTOR = "apify/instagram-scraper"
-MONTHS_LOOKBACK = 12                # only analyze posts from the last N months
+# Only analyze posts from the last N months (30-day months); set per job.
+MONTHS_LOOKBACK = int(os.getenv("MONTHS_LOOKBACK", "12"))
 MAX_POSTS_PER_PROFILE = 200         # safety cap per profile
 
 # --- Content vision detection ---
-VISION_MODEL = "claude-sonnet-4-5"  # any Anthropic vision-capable model
+# Vision model, set per job with VISION_MODEL=<id>. Each model needs an entry
+# in VISION_MODELS: its price (USD per million tokens; images are billed as
+# input) and the extra request options it accepts.
+VISION_MODEL = os.getenv("VISION_MODEL", "claude-sonnet-4-5")
+VISION_MODELS = {
+    # temperature=0 so the same frames give the same flags on every run.
+    "claude-sonnet-4-5": {"price_in": 3.00, "price_out": 15.00,
+                          "max_tokens": 1000, "options": {"temperature": 0}},
+    # Rejects temperature (results can vary slightly run to run) and thinks by
+    # default. Tested 2026-10-12 against 4.5: medium effort found the same
+    # ot.lorena reference flags and paid pizza posts as low, with fewer
+    # borderline flags, at the same cost (~$0.018/video).
+    # max_tokens covers thinking plus the JSON reply.
+    "claude-sonnet-5-5": {"price_in": 2.00, "price_out": 10.00,
+                          "max_tokens": 4000, "options": {"output_config": {"effort": "medium"}}},
+}
 FRAMES_PER_VIDEO = 6                # evenly-sampled frames sent to the model
 FRAME_MAX_WIDTH = 768               # downscale frames before upload (px)
 # Cap on videos analyzed per profile - None means analyze every video. Set to
@@ -129,10 +145,8 @@ REVIEW_BRANDS_FILE = ROOT / os.getenv("REVIEW_BRANDS_FILE", "review_brands.txt")
 # Every run writes runs/<timestamp>.json: phase times, per-video timings,
 # token usage, cost and per-video results, so runs can be compared.
 RUNS_DIR = ROOT / "runs"
-# USD per million tokens for VISION_MODEL (images are billed as input tokens).
-# Update these if VISION_MODEL changes.
-PRICE_INPUT_PER_MTOK = 3.00
-PRICE_OUTPUT_PER_MTOK = 15.00
+PRICE_INPUT_PER_MTOK = VISION_MODELS[VISION_MODEL]["price_in"]
+PRICE_OUTPUT_PER_MTOK = VISION_MODELS[VISION_MODEL]["price_out"]
 
 # --- Timing estimate ---
 # Rough seconds per video (download + frame sample + vision call), used to
