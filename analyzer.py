@@ -203,6 +203,9 @@ def detect_content(post: dict, client: anthropic.Anthropic) -> dict:
         msg = client.messages.create(
             model=config.VISION_MODEL,
             max_tokens=400,
+            # Same frames should give the same flags, so runs can be compared
+            # and a re-scan doesn't flip borderline results by chance.
+            temperature=0,
             messages=[{"role": "user", "content": content}],
         )
         metrics["input_tokens"] = msg.usage.input_tokens
