@@ -3,7 +3,7 @@
 Parses the generated HTML report (no need to re-scrape or re-run the
 vision model) and writes, next to it:
   - <report>.csv   summary table, one row per profile
-  - <report>.xlsx  Summary + Flagged Videos + Deals to Review + Brand Deals sheets
+  - <report>.xlsx  Summary + Flagged Posts + Deals to Review + Brand Deals sheets
 
 Category columns are read from the report's own header, so reports made
 with any category set (and older reports) export correctly.
@@ -50,7 +50,7 @@ REVIEW_ROW_RE = re.compile(
 )
 
 VISION_GAP_RE = re.compile(
-    r'<p class="status-banner error">⚠ (\d+) of (\d+) videos could not be', re.S
+    r'<p class="status-banner error">⚠ (\d+) of (\d+) (?:videos|posts) could not be', re.S
 )
 
 FLAG_ROW_RE = re.compile(
@@ -92,7 +92,7 @@ def parse_report(text: str):
 
     reasons = {}
     gaps = {}
-    flagged_videos, brand_deals, review_deals = [], [], []
+    flagged_posts, brand_deals, review_deals = [], [], []
     for card_m in CARD_RE.finditer(text):
         username, body = unesc(card_m.group(1)), card_m.group(2)
 
@@ -109,12 +109,12 @@ def parse_report(text: str):
 
         gap_m = VISION_GAP_RE.search(body)
         if gap_m:
-            gaps[username] = f"{gap_m.group(1)}/{gap_m.group(2)} videos not analyzed"
+            gaps[username] = f"{gap_m.group(1)}/{gap_m.group(2)} posts not analyzed"
 
         for row_m in FLAG_ROW_RE.finditer(body):
             badges_html, evidence, url = row_m.groups()
             flags = ", ".join(BADGE_RE.findall(badges_html))
-            flagged_videos.append({
+            flagged_posts.append({
                 "username": username,
                 "flags": flags,
                 "evidence": unesc(evidence),
@@ -135,7 +135,7 @@ def parse_report(text: str):
         r["reason"] = reasons.get(r["username"], "")
         r["gaps"] = gaps.get(r["username"], "")
 
-    return summary, flagged_videos, brand_deals, review_deals
+    return summary, flagged_posts, brand_deals, review_deals
 
 
 def _cats(summary) -> list[str]:
@@ -156,14 +156,14 @@ def write_csv(summary, path):
     print(f"Wrote {path}")
 
 
-def write_xlsx(summary, flagged_videos, brand_deals, review_deals, path):
+def write_xlsx(summary, flagged_posts, brand_deals, review_deals, path):
     wb = openpyxl.Workbook()
     cats = _cats(summary)
 
     ws = wb.active
     ws.title = "Summary"
     header = ["Influencer", "Status", "Reason", "Analysis gaps", "Posts analyzed",
-              "Brand deals", "Brands mentioned", "Deals to review", "Flagged videos"] + cats
+              "Brand deals", "Brands mentioned", "Deals to review", "Flagged posts"] + cats
     ws.append(header)
     for cell in ws[1]:
         cell.font = Font(bold=True)
@@ -175,11 +175,11 @@ def write_xlsx(summary, flagged_videos, brand_deals, review_deals, path):
     for col, width in zip(ws.columns, widths):
         ws.column_dimensions[col[0].column_letter].width = width
 
-    ws2 = wb.create_sheet("Flagged Videos")
+    ws2 = wb.create_sheet("Flagged Posts")
     ws2.append(["Influencer", "Flags", "Evidence", "Post URL"])
     for cell in ws2[1]:
         cell.font = Font(bold=True)
-    for r in flagged_videos:
+    for r in flagged_posts:
         ws2.append([r["username"], r["flags"], r["evidence"], r["url"]])
     for col, width in zip(ws2.columns, [22, 20, 60, 40]):
         ws2.column_dimensions[col[0].column_letter].width = width
@@ -210,7 +210,7 @@ def main():
     usernames = {u.lstrip("@") for u in sys.argv[1:]}
 
     text = config.OUTPUT_HTML.read_text(encoding="utf-8")
-    summary, flagged_videos, brand_deals, review_deals = parse_report(text)
+    summary, flagged_posts, brand_deals, review_deals = parse_report(text)
     if not summary:
         raise SystemExit(f"No summary rows found — is {config.OUTPUT_HTML.name} up to date?")
 
@@ -219,7 +219,7 @@ def main():
         if missing:
             raise SystemExit(f"Not found in report: {', '.join(sorted(missing))}")
         summary = [r for r in summary if r["username"] in usernames]
-        flagged_videos = [r for r in flagged_videos if r["username"] in usernames]
+        flagged_posts = [r for r in flagged_posts if r["username"] in usernames]
         brand_deals = [r for r in brand_deals if r["username"] in usernames]
         review_deals = [r for r in review_deals if r["username"] in usernames]
         stem = config.OUTPUT_HTML.with_name(config.OUTPUT_HTML.stem + "_selected")
@@ -227,7 +227,7 @@ def main():
         stem = config.OUTPUT_HTML
 
     write_csv(summary, stem.with_suffix(".csv"))
-    write_xlsx(summary, flagged_videos, brand_deals, review_deals, stem.with_suffix(".xlsx"))
+    write_xlsx(summary, flagged_posts, brand_deals, review_deals, stem.with_suffix(".xlsx"))
 
 
 if __name__ == "__main__":

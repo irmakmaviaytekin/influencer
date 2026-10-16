@@ -15,15 +15,23 @@ import export_report
 
 
 def load(path: str) -> dict:
-    return json.loads(Path(path).read_text())
+    """Load a run file; runs from before photo/carousel support used video names."""
+    run = json.loads(Path(path).read_text())
+    for old, new in [("per_video", "per_post"), ("videos", "posts"),
+                     ("videos_failed", "posts_failed"), ("videos_flagged", "posts_flagged")]:
+        if old in run and new not in run:
+            run[new] = run[old]
+    run.setdefault("images", "n/a")  # not recorded before
+    run["settings"].setdefault("vision_workers", run["settings"].get("video_workers", 1))
+    return run
 
 
 def flags_by_url(run: dict) -> dict[str, list[str]]:
-    return {v["url"]: v["hits"] for v in run["per_video"] if v["hits"]}
+    return {v["url"]: v["hits"] for v in run["per_post"] if v["hits"]}
 
 
 def failed_urls(run: dict) -> set[str]:
-    return {v["url"] for v in run["per_video"] if v["error"]}
+    return {v["url"] for v in run["per_post"] if v["error"]}
 
 
 def main():
@@ -36,21 +44,20 @@ def main():
 
     print(f"{'':22}{'before':>12}{'after':>12}")
     for key, label in [("total_s", "total time (s)"), ("text_pass_s", "text pass (s)"),
-                       ("vision_pass_s", "vision pass (s)"), ("videos", "videos"),
-                       ("videos_failed", "not analyzed"), ("videos_flagged", "flagged videos"),
+                       ("vision_pass_s", "vision pass (s)"), ("posts", "posts analyzed"),
+                       ("images", "images sent"), ("posts_failed", "not analyzed"),
+                       ("posts_flagged", "flagged posts"),
                        ("input_tokens", "input tokens"), ("output_tokens", "output tokens"),
                        ("vision_cost_usd", "vision cost ($)")]:
         print(f"{label:22}{a[key]:>12}{b[key]:>12}")
-    for key in ("video_workers", "scrape_workers"):
+    for key in ("vision_workers", "scrape_workers"):
         print(f"{key:22}{a['settings'].get(key, 1):>12}{b['settings'].get(key, 1):>12}")
     if b["vision_pass_s"]:
         print(f"\nvision pass speedup: {a['vision_pass_s'] / b['vision_pass_s']:.1f}x")
-    n_a, n_b = a["videos"] - a["videos_failed"], b["videos"] - b["videos_failed"]
+    n_a, n_b = a["posts"] - a["posts_failed"], b["posts"] - b["posts_failed"]
     if n_a and n_b:
-        print(f"cost per analyzed video: ${a['vision_cost_usd'] / n_a:.4f} -> "
+        print(f"cost per analyzed post: ${a['vision_cost_usd'] / n_a:.4f} -> "
               f"${b['vision_cost_usd'] / n_b:.4f}")
-        print(f"mean download per video: {a['sum_download_s'] / a['videos']:.1f}s -> "
-              f"{b['sum_download_s'] / b['videos']:.1f}s")
 
     fa, fb = flags_by_url(a), flags_by_url(b)
     print(f"\nflag differences ({len(set(fa) | set(fb))} posts flagged in either run):")
@@ -66,7 +73,7 @@ def main():
 
     if args.reference:
         _, ref_flags, _, _ = export_report.parse_report(Path(args.reference).read_text())
-        urls_a = {v["url"] for v in a["per_video"]}
+        urls_a = {v["url"] for v in a["per_post"]}
         print(f"\nreference flags from {args.reference}:")
         for f in ref_flags:
             url = f["url"]

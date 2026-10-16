@@ -35,6 +35,15 @@ def _normalize(item: dict) -> dict:
         "tagged_users": [u.get("username") for u in item.get("taggedUsers", []) if isinstance(u, dict)],
         "is_sponsored": bool(item.get("isSponsored") or item.get("paidPartnership")),
         "video_url": video_url,
+        # Photo, video cover, or carousel cover image.
+        "display_url": item.get("displayUrl") or "",
+        "alt": item.get("alt") or "",
+        # Carousel slides (photos and/or videos), in order.
+        "children": [{"type": c.get("type") or "",
+                      "display_url": c.get("displayUrl") or "",
+                      "video_url": c.get("videoUrl") or "",
+                      "alt": c.get("alt") or ""}
+                     for c in item.get("childPosts") or [] if isinstance(c, dict)],
         "likes": item.get("likesCount"),
         "comments": item.get("commentsCount"),
     }

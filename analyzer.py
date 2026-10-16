@@ -13,6 +13,7 @@ import tempfile
 import time
 
 import cv2
+import numpy as np
 import requests
 import anthropic
 
@@ -126,6 +127,40 @@ def _download_video(url: str) -> str | None:
     return tmp.name
 
 
+def _to_jpeg(frame) -> bytes | None:
+    """Downscale to FRAME_MAX_WIDTH and JPEG-encode (keeps image tokens bounded)."""
+    h, w = frame.shape[:2]
+    if w > config.FRAME_MAX_WIDTH:
+        scale = config.FRAME_MAX_WIDTH / w
+        frame = cv2.resize(frame, (int(w * scale), int(h * scale)))
+    ok, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+    return buf.tobytes() if ok else None
+
+
+def _download_image(url: str) -> bytes | None:
+    """Download a photo/cover image and return it as a downscaled JPEG."""
+    if not url:
+        return None
+    try:
+        r = requests.get(url, timeout=15)
+        r.raise_for_status()
+    except requests.RequestException:
+        return None
+    frame = cv2.imdecode(np.frombuffer(r.content, np.uint8), cv2.IMREAD_COLOR)
+    return None if frame is None else _to_jpeg(frame)
+
+
+def _video_frames(url: str, n: int) -> list[bytes]:
+    """Download a video and return n sampled frames ([] on any failure)."""
+    path = _download_video(url)
+    if not path:
+        return []
+    try:
+        return _sample_frames(path, n)
+    finally:
+        os.unlink(path)  # temp video is only needed for frame sampling
+
+
 def _sample_frames(video_path: str, n: int) -> list[bytes]:
     """Return up to n evenly-spaced JPEG frames (downscaled) from the video."""
     cap = cv2.VideoCapture(video_path)
@@ -140,15 +175,71 @@ def _sample_frames(video_path: str, n: int) -> list[bytes]:
         ok, frame = cap.read()
         if not ok:
             continue
-        h, w = frame.shape[:2]
-        if w > config.FRAME_MAX_WIDTH:
-            scale = config.FRAME_MAX_WIDTH / w
-            frame = cv2.resize(frame, (int(w * scale), int(h * scale)))
-        ok, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
-        if ok:
-            frames.append(buf.tobytes())
+        jpeg = _to_jpeg(frame)
+        if jpeg:
+            frames.append(jpeg)
     cap.release()
     return frames
+
+
+# ---------------------------------------------------------------------------
+# Media per post: what the model looks at
+# ---------------------------------------------------------------------------
+def media_kind(post: dict) -> str | None:
+    """"carousel", "video", "photo", or None when the post has nothing to look at."""
+    if post.get("children") or post.get("type") == "Sidecar":
+        return "carousel"
+    if post.get("video_url"):
+        return "video"
+    if post.get("display_url"):
+        return "photo"
+    return None
+
+
+def collect_media(post: dict) -> tuple[list[tuple[str, bytes]], str | None]:
+    """Download what the model should see, as (label, jpeg) pairs in order.
+
+    Returns (images, error). Every image the post needs must load, or the post
+    is reported as not analyzed - a partly-seen carousel is not a clean one.
+    The video cover is the only optional image (the frames still cover the video).
+    """
+    kind = media_kind(post)
+    images: list[tuple[str, bytes]] = []
+    if kind == "carousel":
+        slides = post.get("children") or []
+        if not slides:
+            return [], "carousel slides missing from the scrape"
+        for i, slide in enumerate(slides, 1):
+            tag = f"Slide {i} of {len(slides)}"
+            if slide["video_url"]:
+                frames = _video_frames(slide["video_url"], config.FRAMES_PER_CAROUSEL_VIDEO)
+                if not frames:
+                    return [], (f"carousel slide {i} video could not be downloaded "
+                                f"(link may have expired - try a fresh scrape)")
+                images += [(f"{tag} (video), frame {j} of {len(frames)}", f)
+                           for j, f in enumerate(frames, 1)]
+            else:
+                img = _download_image(slide["display_url"])
+                if img is None:
+                    return [], (f"carousel slide {i} image could not be downloaded "
+                                f"(link may have expired - try a fresh scrape)")
+                images.append((f"{tag} (photo)", img))
+    elif kind == "video":
+        cover = _download_image(post.get("display_url", "")) if config.INCLUDE_VIDEO_COVER else None
+        if cover:
+            images.append(("Cover image (the video's thumbnail)", cover))
+        frames = _video_frames(post["video_url"], config.FRAMES_PER_VIDEO)
+        if not frames:
+            return [], "video download failed (link may have expired - try a fresh scrape)"
+        images += [(f"Video frame {j} of {len(frames)}", f) for j, f in enumerate(frames, 1)]
+    elif kind == "photo":
+        img = _download_image(post["display_url"])
+        if img is None:
+            return [], "photo could not be downloaded (link may have expired - try a fresh scrape)"
+        images.append(("Photo", img))
+    else:
+        return [], "post has no photo or video to analyze"
+    return images, None
 
 
 # ---------------------------------------------------------------------------
@@ -161,9 +252,11 @@ def _content_prompt(post: dict) -> str:
                       for key in config.CONTENT_CATEGORIES)
     accounts = sorted(set(post.get("mentions") or []) | set(post.get("tagged_users") or []))
     return (
-        "You are screening a single social-media video for a brand-safety review. "
-        "You get sampled frames from the video plus the post's caption and details. "
-        "For each category below, flag it if it appears anywhere in the frames "
+        "You are screening a single Instagram post for a brand-safety review. The "
+        "post is a video (you get its cover image and sampled frames), a photo, or a "
+        "carousel of slides (you get every slide; video slides as sampled frames). "
+        "Each image is labeled. You also get the post's caption and details. "
+        "For each category below, flag it if it appears anywhere in the images "
         "(including the background) or the caption. When you are unsure, flag it "
         "and say what you saw: a person reviews every flag, so a missed case costs "
         "more than an extra one. You cannot hear audio, so judge speech only from "
@@ -173,8 +266,8 @@ def _content_prompt(post: dict) -> str:
         f"Instagram paid-partnership label: {'yes' if post.get('is_sponsored') else 'no'}\n"
         f"Tagged/mentioned accounts: {', '.join('@' + a for a in accounts) or 'none'}\n"
         f"<caption>\n{post.get('caption') or '(no caption)'}\n</caption>\n\n"
-        "In each evidence, say whether it came from a frame, the caption or the post "
-        "details.\n"
+        "In each evidence, say where it came from: the image label (e.g. 'Slide 3', "
+        "'Video frame 2', 'Cover image'), the caption or the post details.\n"
         "Respond with ONLY a strict JSON object, no prose:\n"
         f"{{{schema}}}"
     )
@@ -185,41 +278,28 @@ def _empty_result() -> dict:
 
 
 def detect_content(post: dict, client: anthropic.Anthropic) -> dict:
-    """Download the post's video, sample frames, flag the content categories.
+    """Download the post's media (see collect_media), flag the content categories.
 
     Returns {"error": str|None, "categories": {category: {"present": bool,
     "evidence": str}}}. `error` is set (and categories are all-empty/unreliable)
-    when the video couldn't be downloaded or analyzed - this is distinct from a
+    when the media couldn't be downloaded or analyzed - this is distinct from a
     successful analysis that found nothing, and callers must not treat the two
     the same way (a download failure is not evidence of a clean profile).
     """
     # Timing and token usage per stage, so runs can be compared for speed and cost.
-    metrics = {"download_s": 0.0, "frames_s": 0.0, "vision_s": 0.0,
+    metrics = {"kind": media_kind(post), "images": 0, "media_s": 0.0, "vision_s": 0.0,
                "input_tokens": 0, "output_tokens": 0}
 
-    video_url = post.get("video_url")
-    if not video_url:
-        return {"error": None, "categories": _empty_result(), "metrics": metrics}
-
     t = time.monotonic()
-    path = _download_video(video_url)
-    metrics["download_s"] = time.monotonic() - t
-    if not path:
-        return {"error": "video download failed (link may have expired - try a fresh scrape)",
-                "categories": _empty_result(), "metrics": metrics}
-
-    t = time.monotonic()
-    try:
-        frames = _sample_frames(path, config.FRAMES_PER_VIDEO)
-    finally:
-        os.unlink(path)  # temp video is only needed for frame sampling
-    metrics["frames_s"] = time.monotonic() - t
-    if not frames:
-        return {"error": "no frames extracted", "categories": _empty_result(),
-                "metrics": metrics}
+    images, error = collect_media(post)
+    metrics["media_s"] = time.monotonic() - t  # downloads + frame sampling
+    metrics["images"] = len(images)
+    if error:
+        return {"error": error, "categories": _empty_result(), "metrics": metrics}
 
     content = [{"type": "text", "text": _content_prompt(post)}]
-    for f in frames:
+    for label, f in images:
+        content.append({"type": "text", "text": f"{label}:"})
         content.append({
             "type": "image",
             "source": {
@@ -241,7 +321,7 @@ def detect_content(post: dict, client: anthropic.Anthropic) -> dict:
         metrics["input_tokens"] = msg.usage.input_tokens
         metrics["output_tokens"] = msg.usage.output_tokens
         if msg.stop_reason == "refusal":
-            # A declined video is not a clean video - report it as not analyzed.
+            # A declined post is not a clean post - report it as not analyzed.
             category = getattr(msg.stop_details, "category", None) if msg.stop_details else None
             raise RuntimeError(f"model declined to analyze ({category or 'no category'})")
         if msg.stop_reason == "max_tokens":

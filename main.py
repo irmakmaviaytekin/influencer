@@ -22,6 +22,7 @@ import json
 import sys
 import time
 import traceback
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
@@ -31,7 +32,7 @@ import config
 import export_report
 from scraper import scrape_profile
 from analyzer import (
-    detect_brand_deals, detect_content, detect_competitor, detect_review_brand,
+    detect_brand_deals, detect_content, detect_competitor, detect_review_brand, media_kind,
     CONTENT_CATEGORIES,
 )
 
@@ -83,7 +84,7 @@ def text_pass(username: str, competitors: set[str], review_brands: list[str]) ->
     deal_details = []
     all_brands = set()
     reject_reason = None
-    video_posts = []
+    media_posts = []
 
     for post in posts:
         deal = detect_brand_deals(post)
@@ -101,11 +102,12 @@ def text_pass(username: str, competitors: set[str], review_brands: list[str]) ->
             if comp:
                 reject_reason = f'mentions competitor "{comp}"'
 
-        if post.get("video_url"):
-            video_posts.append(post)
+        # Every post with a photo, video or carousel goes to the vision pass.
+        if media_kind(post):
+            media_posts.append(post)
 
-    if config.MAX_VIDEOS_PER_PROFILE is not None:
-        video_posts = video_posts[:config.MAX_VIDEOS_PER_PROFILE]
+    if config.MAX_VISION_POSTS_PER_PROFILE is not None:
+        media_posts = media_posts[:config.MAX_VISION_POSTS_PER_PROFILE]
 
     return {
         "username": username,
@@ -118,12 +120,12 @@ def text_pass(username: str, competitors: set[str], review_brands: list[str]) ->
         "reject_reason": reject_reason,
         "vision_run": False,
         "vision_error": None,
-        "video_count": len(video_posts),
+        "media_count": len(media_posts),
         "vision_failed_count": 0,
         "cat_counts": {c: 0 for c in CONTENT_CATEGORIES},
-        "flagged_video_count": 0,
+        "flagged_post_count": 0,
         "flag_details": [],
-        "_video_posts": video_posts,
+        "_media_posts": media_posts,
     }
 
 
@@ -134,22 +136,22 @@ def failed_row(username: str, reason: str) -> dict:
         "username": username, "posts_analyzed": 0, "deal_count": 0, "scrape_error": reason,
         "brands": [], "deal_details": [], "review_deals": [],
         "rejected": False, "reject_reason": None,
-        "vision_run": False, "vision_error": None, "video_count": 0, "vision_failed_count": 0,
+        "vision_run": False, "vision_error": None, "media_count": 0, "vision_failed_count": 0,
         "cat_counts": {c: 0 for c in CONTENT_CATEGORIES},
-        "flagged_video_count": 0, "flag_details": [], "_video_posts": [],
+        "flagged_post_count": 0, "flag_details": [], "_media_posts": [],
     }
 
 
 # ---------------------------------------------------------------------------
 # Vision pass
 # ---------------------------------------------------------------------------
-def analyze_video(post: dict, client: anthropic.Anthropic) -> dict:
-    """Analyze one video. Runs in a worker thread and never raises - any
+def analyze_post(post: dict, client: anthropic.Anthropic) -> dict:
+    """Analyze one post. Runs in a worker thread and never raises - any
     failure is returned as `error`, which the report shows as "not analyzed"."""
     start = time.monotonic()
     try:
         result = detect_content(post, client)
-    except Exception as e:  # noqa: BLE001 - one bad video must not sink the profile
+    except Exception as e:  # noqa: BLE001 - one bad post must not sink the profile
         result = {"error": f"unexpected error: {e}", "categories": None, "metrics": {}}
     content = result["categories"]
     hits = ([] if result["error"]
@@ -159,8 +161,8 @@ def analyze_video(post: dict, client: anthropic.Anthropic) -> dict:
             "total_s": time.monotonic() - start, **result["metrics"]}
 
 
-def apply_video_results(row: dict, records: list[dict]) -> None:
-    """Fold a profile's per-video results (in post order) into its report row."""
+def apply_post_results(row: dict, records: list[dict]) -> None:
+    """Fold a profile's per-post results (in post order) into its report row."""
     cat_counts = {c: 0 for c in CONTENT_CATEGORIES}
     flag_details = []
     failed = 0
@@ -176,11 +178,11 @@ def apply_video_results(row: dict, records: list[dict]) -> None:
                                  "evidence": rec["evidence"]})
 
     row["cat_counts"] = cat_counts
-    row["flagged_video_count"] = len(flag_details)
+    row["flagged_post_count"] = len(flag_details)
     row["flag_details"] = flag_details
     row["vision_run"] = True
     row["vision_failed_count"] = failed
-    row["_video_metrics"] = records
+    row["_post_metrics"] = records
 
 
 # ---------------------------------------------------------------------------
@@ -220,21 +222,21 @@ def _profile_card(r: dict) -> str:
         banner = '<p class="status-banner pending">Vision pass pending…</p>'
     elif status == "reviewed" and r.get("vision_failed_count"):
         banner = (f'<p class="status-banner error">⚠ {r["vision_failed_count"]} of '
-                  f'{r.get("video_count", r["vision_failed_count"])} videos could not be '
+                  f'{r.get("media_count", r["vision_failed_count"])} posts could not be '
                   f'downloaded/analyzed (expired link or error) — category counts below are '
                   f'incomplete, not a clean result. Delete cache/{u}.json and re-run for a '
                   f'fresh scrape.</p>')
     else:
         banner = ""
 
-    flagged_stat_val = str(r["flagged_video_count"]) if status == "reviewed" else "—"
+    flagged_stat_val = str(r["flagged_post_count"]) if status == "reviewed" else "—"
     counts_row = "".join(
         f'<div class="stat"><span class="num" style="color:{CAT_COLORS[c]}">'
         f'{r["cat_counts"][c] if status == "reviewed" else "—"}</span>'
         f'<span class="lbl">{CAT_LABELS[c]}</span></div>'
         for c in CONTENT_CATEGORIES)
 
-    # Flagged videos table.
+    # Flagged posts table.
     if status == "rejected":
         flags_html = '<p class="none">Not analyzed — auto-rejected before the vision pass.</p>'
     elif r.get("scrape_error"):
@@ -257,7 +259,7 @@ def _profile_card(r: dict) -> str:
             '<th>Why (model reasoning)</th><th>Link</th></tr></thead>'
             f'<tbody>{flag_rows}</tbody></table>')
     else:
-        flags_html = '<p class="none">No flagged videos.</p>'
+        flags_html = '<p class="none">No flagged posts.</p>'
 
     # Deals with a review brand (text pass) - flagged for a person to check.
     if r.get("scrape_error"):
@@ -303,10 +305,10 @@ def _profile_card(r: dict) -> str:
         <div class="stat"><span class="num">{len(r['review_deals'])}</span>
           <span class="lbl">deals to review</span></div>
         <div class="stat"><span class="num">{flagged_stat_val}</span>
-          <span class="lbl">flagged videos</span></div>
+          <span class="lbl">flagged posts</span></div>
       </div>
       <div class="catstats">{counts_row}</div>
-      <h3>Flagged videos</h3>
+      <h3>Flagged posts</h3>
       {flags_html}
       <h3>Deals to review</h3>
       {review_html}
@@ -326,7 +328,7 @@ def _summary_row(r: dict) -> str:
             f'<td>{r["posts_analyzed"]}</td><td>{r["deal_count"]}</td>'
             f'<td>{len(r["brands"])}</td>'
             f'<td class="{"hot" if r["review_deals"] else ""}">{len(r["review_deals"])}</td>'
-            f'<td>{r["flagged_video_count"]}</td>{cells}</tr>')
+            f'<td>{r["flagged_post_count"]}</td>{cells}</tr>')
 
 
 def _text_only_note() -> str:
@@ -431,13 +433,13 @@ def write_report(rows: list[dict], vision_complete: bool):
   {cards}
 
   <p class="note">
-    Flags come from an AI vision model reviewing {config.FRAMES_PER_VIDEO} sampled
-    frames per video plus the post caption. They indicate content <em>worth
-    reviewing</em>, not verified fact — check the reasoning and the linked post.
-    {_text_only_note()}
-    Only video posts are analyzed; photo and carousel posts are not checked for these
-    categories. Videos that could not be downloaded are counted as not analyzed, not
-    as clean. "Deals to review" are brand deals that mention a brand from this job's
+    Flags come from an AI vision model reviewing each post's images — for a video its
+    cover image and {config.FRAMES_PER_VIDEO} sampled frames, for a photo the photo, for
+    a carousel every slide ({config.FRAMES_PER_CAROUSEL_VIDEO} frames per video slide) —
+    plus the caption. They indicate content <em>worth reviewing</em>, not verified
+    fact — check the reasoning and the linked post. {_text_only_note()}
+    Posts whose images could not be downloaded are counted as not analyzed, not as
+    clean. "Deals to review" are brand deals that mention a brand from this job's
     review list (in a tagged/mentioned account or the caption) — flagged for a person
     to check, not rejected. "Rejected" profiles mentioned a competitor brand in a
     caption/mention and never reached the vision pass — their category counts are 0
@@ -459,10 +461,10 @@ def export_current_report():
 
 def write_run_metrics(rows: list[dict], started: datetime, text_s: float,
                       vision_s: float) -> dict:
-    """Save timing, token usage, cost and per-video results to runs/<timestamp>.json."""
-    videos = [v for r in rows for v in r.get("_video_metrics", [])]
-    input_tokens = sum(v.get("input_tokens", 0) for v in videos)
-    output_tokens = sum(v.get("output_tokens", 0) for v in videos)
+    """Save timing, token usage, cost and per-post results to runs/<timestamp>.json."""
+    posts = [v for r in rows for v in r.get("_post_metrics", [])]
+    input_tokens = sum(v.get("input_tokens", 0) for v in posts)
+    output_tokens = sum(v.get("output_tokens", 0) for v in posts)
     cost = (input_tokens * config.PRICE_INPUT_PER_MTOK
             + output_tokens * config.PRICE_OUTPUT_PER_MTOK) / 1_000_000
     summary = {
@@ -470,24 +472,27 @@ def write_run_metrics(rows: list[dict], started: datetime, text_s: float,
         "profiles": [r["username"] for r in rows],
         "settings": {"vision_model": config.VISION_MODEL,
                      "frames_per_video": config.FRAMES_PER_VIDEO,
+                     "include_video_cover": config.INCLUDE_VIDEO_COVER,
+                     "frames_per_carousel_video": config.FRAMES_PER_CAROUSEL_VIDEO,
                      "scrape_workers": config.SCRAPE_WORKERS,
-                     "video_workers": config.VIDEO_WORKERS,
+                     "vision_workers": config.VISION_WORKERS,
                      "category_set": config.CATEGORY_SET,
                      "review_brands_file": config.REVIEW_BRANDS_FILE.name,
                      "report": str(config.OUTPUT_HTML)},
         "text_pass_s": round(text_s, 1),
         "vision_pass_s": round(vision_s, 1),
         "total_s": round(text_s + vision_s, 1),
-        "videos": len(videos),
-        "videos_failed": sum(1 for v in videos if v["error"]),
-        "videos_flagged": sum(1 for v in videos if v["hits"]),
-        "sum_download_s": round(sum(v.get("download_s", 0) for v in videos), 1),
-        "sum_frames_s": round(sum(v.get("frames_s", 0) for v in videos), 1),
-        "sum_vision_s": round(sum(v.get("vision_s", 0) for v in videos), 1),
+        "posts": len(posts),
+        "posts_by_kind": dict(Counter(v.get("kind") for v in posts)),
+        "posts_failed": sum(1 for v in posts if v["error"]),
+        "posts_flagged": sum(1 for v in posts if v["hits"]),
+        "images": sum(v.get("images", 0) for v in posts),
+        "sum_media_s": round(sum(v.get("media_s", 0) for v in posts), 1),
+        "sum_vision_s": round(sum(v.get("vision_s", 0) for v in posts), 1),
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
         "vision_cost_usd": round(cost, 4),
-        "per_video": videos,
+        "per_post": posts,
     }
     config.RUNS_DIR.mkdir(exist_ok=True)
     path = config.RUNS_DIR / f"{started.strftime('%Y%m%d-%H%M%S')}.json"
@@ -534,7 +539,7 @@ def main():
                 else:
                     print(f"[{done}/{len(profiles)}] {username}: {row['posts_analyzed']} posts | "
                           f"{row['deal_count']} deals ({len(row['review_deals'])} to review) | "
-                          f"{len(row['_video_posts'])} videos pending vision", flush=True)
+                          f"{len(row['_media_posts'])} posts pending vision", flush=True)
             except Exception as e:  # noqa: BLE001 - keep going if one profile fails
                 print(f"[{done}/{len(profiles)}] {username}: FAILED - {e}")
                 traceback.print_exc()
@@ -555,12 +560,12 @@ def main():
               f"{', '.join(failed)}")
 
     pending_rows = [r for r in rows if not r["rejected"] and not r.get("scrape_error")]
-    pending_videos = sum(len(r["_video_posts"]) for r in pending_rows)
-    est_seconds = pending_videos * config.EST_SECONDS_PER_VIDEO / config.VIDEO_WORKERS
+    pending_posts = sum(len(r["_media_posts"]) for r in pending_rows)
+    est_seconds = pending_posts * config.EST_SECONDS_PER_POST / config.VISION_WORKERS
     print(f"Estimated vision-pass time: ~{format_duration(est_seconds)} with "
-          f"{config.VIDEO_WORKERS} at a time, up to "
-          f"~{format_duration(pending_videos * config.EST_SECONDS_PER_VIDEO)} if downloads "
-          f"don't speed up ({pending_videos} videos across {len(pending_rows)} profile(s))\n")
+          f"{config.VISION_WORKERS} at a time, up to "
+          f"~{format_duration(pending_posts * config.EST_SECONDS_PER_POST)} if downloads "
+          f"don't speed up ({pending_posts} posts across {len(pending_rows)} profile(s))\n")
     if text_only:
         print("--text-only: stopping before the vision pass.")
         return
@@ -569,17 +574,17 @@ def main():
     # All videos from all profiles go through one shared pool of workers
     # (download + frames + vision call each). Profiles are queued in order, so
     # they finish roughly in order; each is written to the report as it finishes.
-    print(f"--- Vision pass: content flagging ({config.VIDEO_WORKERS} videos at a time) ---")
+    print(f"--- Vision pass: content flagging ({config.VISION_WORKERS} posts at a time) ---")
     vision_start = time.time()
-    records = [[None] * len(r["_video_posts"]) for r in pending_rows]
-    remaining = [len(r["_video_posts"]) for r in pending_rows]
+    records = [[None] * len(r["_media_posts"]) for r in pending_rows]
+    remaining = [len(r["_media_posts"]) for r in pending_rows]
 
     def finish_profile(p: int) -> None:
         row = pending_rows[p]
         try:
-            apply_video_results(row, records[p])
-            msg = (f"[{row['username']}] done: {len(records[p])} videos | "
-                   f"{row['flagged_video_count']} flagged")
+            apply_post_results(row, records[p])
+            msg = (f"[{row['username']}] done: {len(records[p])} posts | "
+                   f"{row['flagged_post_count']} flagged")
             if row["vision_failed_count"]:
                 msg += f" | {row['vision_failed_count']} could not be analyzed (download/link error)"
             print(msg, flush=True)
@@ -596,27 +601,27 @@ def main():
         if n == 0:
             finish_profile(p)
 
-    pool = ThreadPoolExecutor(config.VIDEO_WORKERS)
+    pool = ThreadPoolExecutor(config.VISION_WORKERS)
     try:
-        futures = {pool.submit(analyze_video, post, client): (p, v)
+        futures = {pool.submit(analyze_post, post, client): (p, v)
                    for p, row in enumerate(pending_rows)
-                   for v, post in enumerate(row["_video_posts"])}
+                   for v, post in enumerate(row["_media_posts"])}
         for done, fut in enumerate(as_completed(futures), 1):
             p, v = futures[fut]
-            records[p][v] = fut.result()  # analyze_video never raises
+            records[p][v] = fut.result()  # analyze_post never raises
             remaining[p] -= 1
             if remaining[p] == 0:
                 finish_profile(p)
             elif done % 10 == 0:
-                print(f"    {done}/{len(futures)} videos analyzed", flush=True)
+                print(f"    {done}/{len(futures)} posts analyzed", flush=True)
     finally:
         # On Ctrl-C, drop queued videos instead of waiting for all of them.
         pool.shutdown(wait=True, cancel_futures=True)
 
     vision_elapsed = time.time() - vision_start
-    total_failed_videos = sum(r["vision_failed_count"] for r in pending_rows)
-    if total_failed_videos:
-        print(f"\n⚠ {total_failed_videos} video(s) across {len(pending_rows)} profile(s) "
+    total_failed_posts = sum(r["vision_failed_count"] for r in pending_rows)
+    if total_failed_posts:
+        print(f"\n⚠ {total_failed_posts} post(s) across {len(pending_rows)} profile(s) "
               f"failed to download/analyze — commonly expired CDN links from an old cache "
               f"entry. Delete the affected cache/<username>.json file(s) and re-run for a "
               f"fresh scrape. See the report for which profiles are affected.")
@@ -624,14 +629,14 @@ def main():
           f"(estimated {format_duration(est_seconds)}).")
 
     for row in rows:
-        row.pop("_video_posts", None)
+        row.pop("_media_posts", None)
     write_report(rows, vision_complete=True)
     export_current_report()
     print(f"Full report written to {config.OUTPUT_HTML} (+ .csv/.xlsx)")
 
     m = write_run_metrics(rows, run_started, text_elapsed, vision_elapsed)
-    print(f"Run metrics: {format_duration(m['total_s'])} total | {m['videos']} videos "
-          f"({m['videos_failed']} failed, {m['videos_flagged']} flagged) | "
+    print(f"Run metrics: {format_duration(m['total_s'])} total | {m['posts']} posts "
+          f"({m['posts_failed']} failed, {m['posts_flagged']} flagged) | "
           f"vision cost ${m['vision_cost_usd']:.2f} -> {m['path']}")
 
 

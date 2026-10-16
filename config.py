@@ -45,13 +45,19 @@ VISION_MODELS = {
                           "max_tokens": 4000, "options": {"output_config": {"effort": "medium"}}},
 }
 FRAMES_PER_VIDEO = 6                # evenly-sampled frames sent to the model
-FRAME_MAX_WIDTH = 768               # downscale frames before upload (px)
+FRAME_MAX_WIDTH = 768               # downscale frames/photos before upload (px)
+# Also send a video's cover image (the thumbnail the creator picked, often with
+# title text) - one extra image per video.
+INCLUDE_VIDEO_COVER = True
+# Frames per video slide inside a carousel. Every slide of a carousel is
+# checked (Instagram allows up to 20), photos as-is, videos as this many frames.
+FRAMES_PER_CAROUSEL_VIDEO = 3
 # Cap on videos analyzed per profile - None means analyze every video. Set to
 # a small number under time pressure to get thin-but-complete coverage across
 # every profile instead of full coverage of only a few (download bandwidth is
 # the bottleneck, not frame count, so this is the only lever that actually
 # reduces total time). Videos are taken in scrape order (most recent first).
-MAX_VIDEOS_PER_PROFILE = None
+MAX_VISION_POSTS_PER_PROFILE = None
 
 # --- Content categories (vision pass) ---
 # What the model checks each video for, as named sets; pick one per job with
@@ -116,7 +122,7 @@ SCRAPE_WORKERS = 4
 # Each worker downloads, samples frames and makes one vision call. Too high
 # and downloads split the bandwidth and hit MAX_DOWNLOAD_SECONDS, or vision
 # calls hit the API rate limit.
-VIDEO_WORKERS = 8
+VISION_WORKERS = 8
 # SDK retries (with backoff) for rate-limited or failed vision calls.
 API_MAX_RETRIES = 5
 
@@ -151,4 +157,4 @@ PRICE_OUTPUT_PER_MTOK = VISION_MODELS[VISION_MODEL]["price_out"]
 # --- Timing estimate ---
 # Rough seconds per video (download + frame sample + vision call), used to
 # estimate vision-pass duration after the text pass completes.
-EST_SECONDS_PER_VIDEO = 12
+EST_SECONDS_PER_POST = 12
