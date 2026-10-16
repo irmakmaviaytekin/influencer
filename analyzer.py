@@ -11,6 +11,7 @@ import os
 import re
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import cv2
 import numpy as np
@@ -185,6 +186,11 @@ def _sample_frames(video_path: str, n: int) -> list[bytes]:
 # ---------------------------------------------------------------------------
 # Media per post: what the model looks at
 # ---------------------------------------------------------------------------
+# Small pool for fetches that overlap a worker's main download (video covers).
+# Separate from the vision workers' pool, so a worker waiting on it can't deadlock.
+_side_fetches = ThreadPoolExecutor(max_workers=8)
+
+
 def media_kind(post: dict) -> str | None:
     """"carousel", "video", "photo", or None when the post has nothing to look at."""
     if post.get("children") or post.get("type") == "Sidecar":
@@ -225,10 +231,13 @@ def collect_media(post: dict) -> tuple[list[tuple[str, bytes]], str | None]:
                                 f"(link may have expired - try a fresh scrape)")
                 images.append((f"{tag} (photo)", img))
     elif kind == "video":
-        cover = _download_image(post.get("display_url", "")) if config.INCLUDE_VIDEO_COVER else None
-        if cover:
-            images.append(("Cover image (the video's thumbnail)", cover))
+        # The cover takes ~1s to fetch, so download it while the video downloads.
+        cover = (_side_fetches.submit(_download_image, post.get("display_url", ""))
+                 if config.INCLUDE_VIDEO_COVER else None)
         frames = _video_frames(post["video_url"], config.FRAMES_PER_VIDEO)
+        cover_jpeg = cover.result() if cover else None
+        if cover_jpeg:
+            images.append(("Cover image (the video's thumbnail)", cover_jpeg))
         if not frames:
             return [], "video download failed (link may have expired - try a fresh scrape)"
         images += [(f"Video frame {j} of {len(frames)}", f) for j, f in enumerate(frames, 1)]
