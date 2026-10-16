@@ -19,18 +19,36 @@ multi-customer version is possible later without a rewrite.
 
 ## Current code (Python)
 
-- `main.py` — runs the pipeline: text pass for all profiles, then vision pass, writes reports.
-  Profiles are processed **one at a time** (no concurrency yet).
-- `scraper.py` — pulls posts via Apify `apify/instagram-scraper`, last 12 months, caches to `cache/`.
-- `analyzer.py` — brand-deal detection (labels, hashtags, phrases, mentions), competitor match,
-  video download, frame sampling (OpenCV), vision call to Anthropic.
+- `main.py` — runs the pipeline: text pass, then vision pass, writes reports after the text pass,
+  after each profile and at the end. Profiles are scraped `SCRAPE_WORKERS` (4) at a time; posts
+  from all profiles go through one shared pool, `VISION_WORKERS` (8) at a time. `--text-only`
+  stops after the text pass and prints a time estimate.
+- `scraper.py` — pulls posts via Apify `apify/instagram-scraper` (max 200 per profile — a busy
+  creator can hit that before the lookback window ends), keeps the last `MONTHS_LOOKBACK` months,
+  caches to `cache/`. A profile that returns no posts fails (shown as Error) instead of being cached.
+- `analyzer.py` — text pass: brand-deal detection (labels, hashtags, phrases, mentions),
+  competitor match, review-brand deal flags. Vision pass: downloads what each post shows —
+  video: cover image + 6 evenly spaced frames; photo: the photo; carousel: every slide, video
+  slides as 3 frames — and sends the labeled images plus caption, paid-partnership label,
+  tagged accounts and Instagram's alt-text description to Anthropic.
 - `export_report.py` — CSV/XLSX export alongside the HTML report.
-- `config.py` — all settings; keys come from `.env`.
-- Inputs: `profiles.txt`, `competitor_brands.txt`. Output: `influencer_report.*` (overwritten each run).
+- `compare_runs.py` — compares two `runs/` files: time, cost, per-post flag differences, and
+  whether an earlier report's flags are still found.
+- `config.py` — all settings; keys come from `.env`. Per job, set by environment variable:
+  `CATEGORY_SET` (named category sets, e.g. `standard`, `pizza`), `REVIEW_BRANDS_FILE`,
+  `MONTHS_LOOKBACK`, `VISION_MODEL`, `REPORT_NAME`.
+- Inputs: `profiles.txt`, `competitor_brands.txt`, optional review-brands file. Output:
+  `<REPORT_NAME>.html/.csv/.xlsx` (default `influencer_report.*`; use `reports/<job>` per job) and
+  `runs/<timestamp>.json` (time, tokens, cost, per-post results).
 
-Current vision step: 6 evenly spaced frames per video, fixed categories
-(drinking, smoking, partying, gambling, swearing). Per the note in `config.py`, video **download**
-is the main bottleneck, not frame count.
+Vision step: categories come from the chosen set in `config.py`, each with the definition sent
+to the model; the prompt says to flag when unsure, since a person reviews every flag. Default
+model is Sonnet 4.5 (temperature 0); Sonnet 5.5 also works (medium effort; it rejects temperature,
+so results can vary slightly between runs). A post whose media can't be downloaded, or that the
+model declines, is reported as not analyzed.
+
+Measured: ot.lorena (138 posts, 977 images) takes ~2 min and $3.85 on Sonnet 4.5 (~$0.028 per
+post). A 17-profile job (975 videos) took 19 min and $18 on Sonnet 5.5.
 
 ## Design decisions (and why) — do not undo without asking
 
@@ -62,22 +80,35 @@ what doesn't. Save the exact criteria with every result so decisions can be expl
 
 **Every flag carries evidence:** post link, timestamp, frame thumbnail, and the reason.
 
+**Media links expire.** Instagram video URLs in a scrape stop working within days (403); image
+URLs last somewhat longer. So per-post descriptions must be made soon after scraping, and any
+frames needed for later re-checks (step 3, evidence thumbnails) must be stored as files — a
+saved scrape can't be re-watched later.
+
 **Interface:** a Streamlit app — upload a creator list, enter criteria, watch progress, review flags
 with evidence, approve/override with a note (logged), export a report for legal.
 
 ## Roadmap
 
 - **Phase 0 — Cleanup.** Rotate the old Apify and Anthropic keys (they're in git history).
+  The Anthropic key was replaced on 2026-10-12 (the old one had been revoked); Apify now uses
+  the organization's token — confirm the old personal Apify token is revoked.
   ~~Stop tracking `cache/`, `__pycache__/`, the vendor sample PDFs and generated reports.~~
   Done (now in `.gitignore`), but they are still in git history.
 - **Phase 1 — Fast, complete engine.**
-  - Process profiles and video downloads in parallel (biggest expected win).
+  - ~~Process profiles and video downloads in parallel~~ Done: ot.lorena's 132 videos in ~2 min
+    (vs ~26 min estimated one at a time), 5 reference flags kept.
   - Add audio transcription (spoken swearing is currently undetected; also catches spoken sponsors).
-  - Cover image and carousel posts (currently ~30% of posts are skipped).
-  - Use free data already in the scrape: alt text, comments, audio info.
+  - ~~Cover image and carousel posts~~ Done (2026-10-16): photos, every carousel slide and
+    video covers are checked (~29% of posts were skipped before). ot.lorena: 6 more posts, 2 new
+    flags, 5 reference flags kept; cost +23%, time +6%.
+  - Use free data already in the scrape: ~~alt text~~ (done; also paid-partnership label and
+    tagged accounts), comments, audio info. Alt text only has a real description on ~3% of
+    posts and ~16% of carousel slides; its effect isn't measured yet (ot.lorena has none).
   - Smarter frame sampling (scene changes instead of fixed spacing).
   - Store output as the reusable per-post descriptions above, not just yes/no flags.
-  - Measure time and cost per profile before and after every change.
+  - Measure time and cost per profile before and after every change (`runs/` +
+    `compare_runs.py`).
 - **Phase 2 — Criteria-based judging.** Structured criteria, chat helper to draft them, per-run
   judging against cached descriptions, competitor list per run, evidence on every flag.
 - **Phase 3 — Streamlit app** for the team.
@@ -86,8 +117,11 @@ with evidence, approve/override with a note (logged), export a report for legal.
 
 ## Testing
 
-Use **ot.lorena** as the regression profile: 118 videos, 0 failures, 5 flagged in the last full run.
-Any speed or sampling change must not lose those flags. Report time, cost and flag differences.
+Use **ot.lorena** as the regression profile. On 2026-10-16 its last 12 months were 138 posts
+(132 videos, 6 carousels), 0 failures, 11 flagged. The 5 flags from the 2026-08-07 report (kept
+locally in `cache/archive/`) must stay flagged after any speed or sampling change: run before and
+after on the same fresh scrape (links expire), then
+`compare_runs.py BEFORE AFTER --reference <that report>`. Report time, cost and flag differences.
 
 ## Rules
 
