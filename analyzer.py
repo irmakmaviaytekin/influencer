@@ -337,8 +337,9 @@ def detect_content(post: dict, client: anthropic.Anthropic) -> dict:
             raise RuntimeError("reply cut off at max_tokens")
         # Newer models can start with a thinking block, so read the text block.
         text = "".join(b.text for b in msg.content if b.type == "text").strip()
-        text = text[text.find("{"):text.rfind("}") + 1]  # drop any fences or prose
-        parsed = json.loads(text)
+        # Parse the first JSON object and ignore anything after it (fences, a
+        # trailing note, a second object) - json.loads would fail on those.
+        parsed, _ = json.JSONDecoder().raw_decode(text[text.find("{"):])
     except Exception as e:  # noqa: BLE001 - surface errors in the report
         metrics["vision_s"] = time.monotonic() - t
         return {"error": f"vision error: {e}", "categories": _empty_result(),
