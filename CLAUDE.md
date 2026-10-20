@@ -61,6 +61,13 @@ post). A 17-profile job (975 videos) took 19 min and $18 on Sonnet 5.5.
 - **Reports are written incrementally** (after the text pass, after each profile, at the end) so a
   crash never loses finished work.
 - **A human makes the final call.** The tool flags with evidence; people approve or reject.
+- **Flags have a sensitivity (added 2026-10-20).** The model rates every category 0-3 per post
+  (none / incidental / notable / heavy) and says why; a post is *flagged* only at or above the
+  job's minimum level (default **heavy** for every category; override per job with
+  `MIN_LEVELS="drinking=notable,..."`). Brands mostly don't care about a glass of wine or a bottle
+  on a shelf - only heavy cases. Every observation is saved in `runs/*.json`, so sensitivity can be
+  changed later for free with `rethreshold.py` (no re-analysis). The prompt still says to report
+  minor cases at level 1 - never drop them; the threshold decides what gets flagged.
 
 ## Target architecture
 
@@ -122,6 +129,14 @@ Use **ot.lorena** as the regression profile. On 2026-10-16 its last 12 months we
 locally in `cache/archive/`) must stay flagged after any speed or sampling change: run before and
 after on the same fresh scrape (links expire), then
 `compare_runs.py BEFORE AFTER --reference <that report>`. Report time, cost and flag differences.
+
+**Baseline under review (2026-10-20):** most of those flags are restaurant/bar drinking or small
+parties, which the sensitivity levels now rate *incidental* (not flagged by default). With levels,
+compare models/settings on the same run with `rethreshold.py`. Result on ot.lorena: at `notable`
+and `heavy`, Sonnet 4.5 and Haiku 4.5 flagged the identical posts (at `heavy` none; at `notable`
+only the nightclub/DJ-booth post, partying=notable), and Haiku cost $1.41 vs $4.12. A person still
+needs to confirm which ot.lorena posts are a real problem before a new reference list replaces the
+old one.
 
 ## Rules
 
