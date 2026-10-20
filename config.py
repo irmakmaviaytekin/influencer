@@ -58,6 +58,10 @@ FRAMES_PER_CAROUSEL_VIDEO = 3
 # the bottleneck, not frame count, so this is the only lever that actually
 # reduces total time). Videos are taken in scrape order (most recent first).
 MAX_VISION_POSTS_PER_PROFILE = None
+# Per job, VIDEOS_ONLY=1 sends only videos/reels to the vision pass (no photos
+# or carousels): far fewer posts to analyze, and the brand-deal text pass is
+# unaffected. Default is off - photos and carousels are checked too.
+VIDEOS_ONLY = os.getenv("VIDEOS_ONLY", "").lower() in ("1", "true", "yes")
 
 # --- Content categories (vision pass) ---
 # What the model checks each video for, as named sets; pick one per job with
@@ -110,6 +114,34 @@ CATEGORY_SETS = {
                            "brand's logo or packaging shown as a promotion, or the video is "
                            "plainly an ad). Just eating, cooking or reviewing pizza with no "
                            "sign of payment, gifting or promotion does NOT count"},
+    },
+    # Calm, quiet-luxury brand direction: flag party energy, alcohol and
+    # violence (brand-safety history), and a loud visual tone that clashes.
+    "quiet_luxury": {
+        "partying": {"label": "Party energy", "color": "#d35400", "text_only": False,
+                     "description": "high-energy party content: club/party scenes, crowds "
+                                    "dancing, nightlife, heavy celebration, festival or "
+                                    "rave-style atmosphere. A quiet dinner or a small calm "
+                                    "gathering does not count"},
+        "drinking": {"label": "Alcohol", "color": "#c0392b", "text_only": False,
+                     "description": "someone consuming alcohol, or alcoholic drinks (beer, "
+                                    "wine, cocktails, spirits, champagne) clearly visible or "
+                                    "promoted. A bar shelf blurred in the background does not "
+                                    "count by itself"},
+        "violence": {"label": "Violence", "color": "#7b241c", "text_only": False,
+                     "description": "fighting, assault, weapons used or brandished "
+                                    "threateningly, blood or injury, graphic or threatening "
+                                    "violence. Cartoon slapstick or toy weapons in play do "
+                                    "not count"},
+        "loud_tone": {"label": "Loud visual tone", "color": "#6c3483", "text_only": False,
+                      "description": "a visual style that clashes with a calm, quiet-luxury "
+                                     "look: frantic or chaotic energy, neon or strongly "
+                                     "saturated club-style lighting, cluttered or garish "
+                                     "settings, shouting or clickbait-style presentation, "
+                                     "loud hype aesthetics. Calm, minimal, softly lit, "
+                                     "neutral or warm-toned content does not count; an "
+                                     "ordinary busy food market or travel scene is not loud "
+                                     "by itself"},
     },
 }
 CATEGORY_SET = os.getenv("CATEGORY_SET", "standard")

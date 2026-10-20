@@ -103,7 +103,8 @@ def text_pass(username: str, competitors: set[str], review_brands: list[str]) ->
                 reject_reason = f'mentions competitor "{comp}"'
 
         # Every post with a photo, video or carousel goes to the vision pass.
-        if media_kind(post):
+        kind = media_kind(post)
+        if kind and (kind == "video" or not config.VIDEOS_ONLY):
             media_posts.append(post)
 
     if config.MAX_VISION_POSTS_PER_PROFILE is not None:
