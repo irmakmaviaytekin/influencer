@@ -138,6 +138,11 @@ only the nightclub/DJ-booth post, partying=notable), and Haiku cost $1.41 vs $4.
 needs to confirm which ot.lorena posts are a real problem before a new reference list replaces the
 old one.
 
+**Default model is now Haiku 4.5 (2026-10-20).** Chosen for cost (about $0.01/post vs $0.03 for
+Sonnet 4.5). It matched Sonnet 4.5 on ot.lorena at `notable`/`heavy`, but ot.lorena has no truly
+heavy content, so it is not yet validated on high-flag creators (e.g. food_with_howie, muaeleni).
+Override per job with `VISION_MODEL=claude-sonnet-4-5`.
+
 ## Rules
 
 - Never commit `.env`, API keys, `cache/`, or scraped personal data. This repo has been public.

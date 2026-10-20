@@ -31,7 +31,7 @@ MAX_POSTS_PER_PROFILE = 200         # safety cap per profile
 # Vision model, set per job with VISION_MODEL=<id>. Each model needs an entry
 # in VISION_MODELS: its price (USD per million tokens; images are billed as
 # input) and the extra request options it accepts.
-VISION_MODEL = os.getenv("VISION_MODEL", "claude-sonnet-4-5")
+VISION_MODEL = os.getenv("VISION_MODEL", "claude-haiku-4-5")  # default since 2026-10-20 (about 3x cheaper than Sonnet 4.5)
 VISION_MODELS = {
     # temperature=0 so the same frames give the same flags on every run.
     "claude-sonnet-4-5": {"price_in": 3.00, "price_out": 15.00,
