@@ -20,6 +20,7 @@ REVIEW_BRANDS_FILE, REPORT_NAME.
 import html
 import json
 import sys
+import threading
 import time
 import traceback
 from collections import Counter
@@ -146,15 +147,43 @@ def failed_row(username: str, reason: str) -> dict:
 # ---------------------------------------------------------------------------
 # Vision pass
 # ---------------------------------------------------------------------------
+# Set when the API refuses every call (no credits, bad key): the rest of the
+# run skips its videos instead of downloading them just to fail.
+STOP = threading.Event()
+STOP_REASON: list[str] = []
+
+
+def short_reason(err: str) -> str:
+    """A short, human reason for a post's error, for console and summaries."""
+    e = (err or "").lower()
+    if "run stopped" in e:
+        return "skipped after run stopped"
+    if "credit balance" in e:
+        return "Anthropic credit balance too low"
+    if "authentication" in e or "invalid x-api-key" in e or "permission" in e:
+        return "API key rejected"
+    if "download" in e:
+        return "download failed"
+    if "vision error" in e:
+        return "vision API error"
+    return (err or "unknown")[:60]
+
+
 def analyze_post(post: dict, client: anthropic.Anthropic) -> dict:
     """Analyze one post. Runs in a worker thread and never raises - any
     failure is returned as `error`, which the report shows as "not analyzed"."""
     start = time.monotonic()
+    if STOP.is_set():
+        return {"url": post["url"], "error": f"skipped - run stopped: {STOP_REASON[0]}",
+                "hits": [], "evidence": {}, "total_s": 0.0}
     try:
         result = detect_content(post, client)
     except Exception as e:  # noqa: BLE001 - one bad post must not sink the profile
         result = {"error": f"unexpected error: {e}", "categories": None, "metrics": {}}
     content = result["categories"]
+    if result.get("fatal") and not STOP.is_set():
+        STOP_REASON.append(short_reason(result["error"]))
+        STOP.set()
     hits = ([] if result["error"]
             else [c for c in CONTENT_CATEGORIES if content[c]["present"]])
     return {"url": post["url"], "error": result["error"], "hits": hits,
@@ -587,7 +616,9 @@ def main():
             msg = (f"[{row['username']}] done: {len(records[p])} posts | "
                    f"{row['flagged_post_count']} flagged")
             if row["vision_failed_count"]:
-                msg += f" | {row['vision_failed_count']} could not be analyzed (download/link error)"
+                why = Counter(short_reason(r["error"]) for r in records[p] if r["error"])
+                msg += (f" | {row['vision_failed_count']} could not be analyzed ("
+                        + ", ".join(f"{n}× {w}" for w, n in why.most_common(2)) + ")")
             print(msg, flush=True)
         except Exception as e:  # noqa: BLE001 - keep going if one profile fails
             print(f"  FAILED (vision): {row['username']}")
@@ -602,6 +633,7 @@ def main():
         if n == 0:
             finish_profile(p)
 
+    announced = False
     pool = ThreadPoolExecutor(config.VISION_WORKERS)
     try:
         futures = {pool.submit(analyze_post, post, client): (p, v)
@@ -610,6 +642,11 @@ def main():
         for done, fut in enumerate(as_completed(futures), 1):
             p, v = futures[fut]
             records[p][v] = fut.result()  # analyze_post never raises
+            if STOP.is_set() and not announced:
+                announced = True
+                print(f"\n!!! STOPPING: {STOP_REASON[0]}. Remaining videos are being skipped "
+                      f"(not downloaded, not charged). Fix this, then rerun - finished "
+                      f"profiles are already saved.\n", flush=True)
             remaining[p] -= 1
             if remaining[p] == 0:
                 finish_profile(p)
@@ -622,10 +659,12 @@ def main():
     vision_elapsed = time.time() - vision_start
     total_failed_posts = sum(r["vision_failed_count"] for r in pending_rows)
     if total_failed_posts:
-        print(f"\n⚠ {total_failed_posts} post(s) across {len(pending_rows)} profile(s) "
-              f"failed to download/analyze — commonly expired CDN links from an old cache "
-              f"entry. Delete the affected cache/<username>.json file(s) and re-run for a "
-              f"fresh scrape. See the report for which profiles are affected.")
+        why = Counter(short_reason(r["error"]) for row in pending_rows
+                      for r in row.get("_post_metrics", []) if r["error"])
+        print(f"\n⚠ {total_failed_posts} post(s) across {len(pending_rows)} profile(s) were "
+              f"not analyzed: " + ", ".join(f"{n}× {w}" for w, n in why.most_common()) +
+              ". Posts with a download failure may need a fresh scrape (delete "
+              "cache/<username>.json). See the report for which profiles are affected.")
     print(f"\nVision pass done in {format_duration(vision_elapsed)} "
           f"(estimated {format_duration(est_seconds)}).")
 
@@ -639,6 +678,9 @@ def main():
     print(f"Run metrics: {format_duration(m['total_s'])} total | {m['posts']} posts "
           f"({m['posts_failed']} failed, {m['posts_flagged']} flagged) | "
           f"vision cost ${m['vision_cost_usd']:.2f} -> {m['path']}")
+    if STOP.is_set():
+        sys.exit(f"Run stopped early: {STOP_REASON[0]}. The report is incomplete - rerun "
+                 f"after fixing this.")
 
 
 if __name__ == "__main__":

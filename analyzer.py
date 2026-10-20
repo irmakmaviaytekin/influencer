@@ -365,8 +365,13 @@ def detect_content(post: dict, client: anthropic.Anthropic) -> dict:
         parsed, _ = json.JSONDecoder().raw_decode(text[text.find("{"):])
     except Exception as e:  # noqa: BLE001 - surface errors in the report
         metrics["vision_s"] = time.monotonic() - t
-        return {"error": f"vision error: {e}", "categories": _empty_result(),
-                "metrics": metrics}
+        # Errors that every later call will hit too (no credits, bad key, no
+        # permission): the run should stop instead of failing every video.
+        fatal = (isinstance(e, (anthropic.AuthenticationError, anthropic.PermissionDeniedError))
+                 or (isinstance(e, anthropic.BadRequestError)
+                     and "credit balance" in str(e).lower()))
+        return {"error": f"vision error: {e}", "fatal": fatal,
+                "categories": _empty_result(), "metrics": metrics}
     metrics["vision_s"] = time.monotonic() - t
 
     result = _empty_result()
