@@ -35,8 +35,8 @@ multi-customer version is possible later without a rewrite.
 - `compare_runs.py` — compares two `runs/` files: time, cost, per-post flag differences, and
   whether an earlier report's flags are still found.
 - `config.py` — all settings; keys come from `.env`. Per job, set by environment variable:
-  `CATEGORY_SET` (named category sets, e.g. `standard`, `pizza`), `REVIEW_BRANDS_FILE`,
-  `MONTHS_LOOKBACK`, `VISION_MODEL`, `REPORT_NAME`.
+  `CATEGORY_SET` (named category sets: `standard`, `pizza`, `quiet_luxury`), `REVIEW_BRANDS_FILE`,
+  `MONTHS_LOOKBACK`, `VISION_MODEL`, `REPORT_NAME`, `VIDEOS_ONLY=1` (skip photos/carousels).
 - Inputs: `profiles.txt`, `competitor_brands.txt`, optional review-brands file. Output:
   `<REPORT_NAME>.html/.csv/.xlsx` (default `influencer_report.*`; use `reports/<job>` per job) and
   `runs/<timestamp>.json` (time, tokens, cost, per-post results).
