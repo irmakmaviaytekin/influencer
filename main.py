@@ -186,8 +186,15 @@ def analyze_post(post: dict, client: anthropic.Anthropic) -> dict:
         STOP.set()
     hits = ([] if result["error"]
             else [c for c in CONTENT_CATEGORIES if content[c]["present"]])
+    # Everything the model saw is kept (even below the flag threshold) so the
+    # sensitivity can be re-applied later without re-analyzing.
+    seen = ({} if result["error"]
+            else {c: content[c] for c in CONTENT_CATEGORIES if content[c]["level"] > 0})
     return {"url": post["url"], "error": result["error"], "hits": hits,
-            "evidence": {c: content[c]["evidence"] for c in hits},
+            "evidence": {c: f"[{config.LEVEL_NAMES[content[c]['level']]}] {content[c]['evidence']}"
+                         for c in hits},
+            "levels": {c: v["level"] for c, v in seen.items()},
+            "observations": {c: v["evidence"] for c, v in seen.items()},
             "total_s": time.monotonic() - start, **result["metrics"]}
 
 
@@ -361,6 +368,17 @@ def _summary_row(r: dict) -> str:
             f'<td>{r["flagged_post_count"]}</td>{cells}</tr>')
 
 
+def _sensitivity_note() -> str:
+    """Tell the reader which sensitivity this job used - a flag means 'at least this level'."""
+    groups: dict[str, list[str]] = {}
+    for key, c in config.CONTENT_CATEGORIES.items():
+        groups.setdefault(config.LEVEL_NAMES[config.min_level(key)], []).append(c["label"])
+    parts = [f"{', '.join(labels)}: {lvl}" for lvl, labels in groups.items()]
+    return ("Sensitivity for this job - a post is flagged only at or above these levels "
+            "(incidental &lt; notable &lt; heavy): " + "; ".join(parts) + ". Milder "
+            "cases were seen but not flagged. ")
+
+
 def _text_only_note() -> str:
     labels = [f"<strong>{c['label']}</strong>" for c in config.CONTENT_CATEGORIES.values()
               if c["text_only"]]
@@ -467,7 +485,7 @@ def write_report(rows: list[dict], vision_complete: bool):
     cover image and {config.FRAMES_PER_VIDEO} sampled frames, for a photo the photo, for
     a carousel every slide ({config.FRAMES_PER_CAROUSEL_VIDEO} frames per video slide) —
     plus the caption. They indicate content <em>worth reviewing</em>, not verified
-    fact — check the reasoning and the linked post. {_text_only_note()}
+    fact — check the reasoning and the linked post. {_sensitivity_note()}{_text_only_note()}
     Posts whose images could not be downloaded are counted as not analyzed, not as
     clean. "Deals to review" are brand deals that mention a brand from this job's
     review list (in a tagged/mentioned account or the caption) — flagged for a person
@@ -507,6 +525,8 @@ def write_run_metrics(rows: list[dict], started: datetime, text_s: float,
                      "scrape_workers": config.SCRAPE_WORKERS,
                      "vision_workers": config.VISION_WORKERS,
                      "category_set": config.CATEGORY_SET,
+                     "min_levels": {c: config.LEVEL_NAMES[config.min_level(c)]
+                                    for c in config.CONTENT_CATEGORIES},
                      "review_brands_file": config.REVIEW_BRANDS_FILE.name,
                      "report": str(config.OUTPUT_HTML)},
         "text_pass_s": round(text_s, 1),
@@ -642,6 +662,7 @@ def main():
         for done, fut in enumerate(as_completed(futures), 1):
             p, v = futures[fut]
             records[p][v] = fut.result()  # analyze_post never raises
+            records[p][v]["profile"] = pending_rows[p]["username"]
             if STOP.is_set() and not announced:
                 announced = True
                 print(f"\n!!! STOPPING: {STOP_REASON[0]}. Remaining videos are being skipped "

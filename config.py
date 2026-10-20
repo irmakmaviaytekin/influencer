@@ -41,6 +41,11 @@ VISION_MODELS = {
     # ot.lorena reference flags and paid pizza posts as low, with fewer
     # borderline flags, at the same cost (~$0.018/video).
     # max_tokens covers thinking plus the JSON reply.
+    # Cheaper tier (about 3x less per image than Sonnet 4.5). Prices are Anthropic's
+    # list prices when added - confirm on the pricing page. Quality on our
+    # categories is being tested against the ot.lorena reference flags.
+    "claude-haiku-4-5": {"price_in": 1.00, "price_out": 5.00,
+                         "max_tokens": 1000, "options": {"temperature": 0}},
     "claude-sonnet-5-5": {"price_in": 2.00, "price_out": 10.00,
                           "max_tokens": 4000, "options": {"output_config": {"effort": "medium"}}},
 }
@@ -145,6 +150,70 @@ CATEGORY_SETS = {
     },
 }
 CATEGORY_SET = os.getenv("CATEGORY_SET", "standard")
+
+# --- Sensitivity (per brand/job) ---
+# The model rates each category 0-3 for every post (0 none, 1 incidental,
+# 2 notable, 3 heavy) and says why. A post is FLAGGED for a category only when
+# its level reaches that category's minimum for this job. Every observation is
+# saved either way, so a brand's sensitivity can be changed later with
+# rethreshold.py without re-analyzing anything.
+LEVELS = {"incidental": 1, "notable": 2, "heavy": 3}
+LEVEL_NAMES = {v: k for k, v in LEVELS.items()}
+# Unless a job says otherwise, only heavy cases count as a flag.
+DEFAULT_MIN_LEVEL = "heavy"
+
+
+def _parse_min_levels(spec: str) -> dict:
+    """MIN_LEVELS="drinking=notable,swearing=incidental" -> {"drinking": 2, ...}"""
+    out = {}
+    for part in filter(None, (p.strip() for p in spec.split(","))):
+        cat, _, lvl = part.partition("=")
+        if lvl.strip() not in LEVELS:
+            raise SystemExit(f"MIN_LEVELS: '{part}' - level must be one of {list(LEVELS)}")
+        out[cat.strip()] = LEVELS[lvl.strip()]
+    return out
+
+
+# Per-job overrides, e.g. MIN_LEVELS="drinking=notable,violence=notable".
+MIN_LEVELS = _parse_min_levels(os.getenv("MIN_LEVELS", ""))
+
+# What each level means for a category, so the model rates consistently.
+LEVEL_NOTES = {
+    "drinking": {"incidental": "a glass of wine or a drink at a meal, a bottle on a shelf or in the background",
+                 "notable": "drinking is clearly the focus of part of the post (cocktails at a bar, a toast, several drinks)",
+                 "heavy": "heavy drinking: visibly drunk, drinking games, many drinks, alcohol is the point of the post"},
+    "partying": {"incidental": "a small celebration, a birthday dinner, a few friends at a bar",
+                 "notable": "a lively party or night out with music and a group, but not a club or crowd scene",
+                 "heavy": "a club, rave or festival crowd, heavy nightlife, dancing crowds, wild celebration"},
+    "violence": {"incidental": "mild roughhousing, a sports tackle, violence in a movie clip or game",
+                 "notable": "a real or staged fight, a weapon displayed, visible injury",
+                 "heavy": "graphic or sustained violence, assault, blood, threatening use of a weapon"},
+    "swearing": {"incidental": "a mild word such as damn or hell",
+                 "notable": "clear profanity",
+                 "heavy": "strong or repeated profanity, slurs, aggressive language"},
+    "smoking": {"incidental": "a cigarette or vape visible briefly in the background",
+                "notable": "someone smoking or vaping on camera",
+                "heavy": "smoking is a feature of the post or promoted"},
+    "gambling": {"incidental": "a lottery ticket or a casino seen in passing",
+                 "notable": "someone gambling on camera",
+                 "heavy": "gambling is promoted or the focus of the post"},
+    "loud_tone": {"incidental": "one busy or colourful moment in an otherwise calm post",
+                  "notable": "a clearly loud, high-energy or cluttered style through much of the post",
+                  "heavy": "the whole post is frantic, garish or hype-driven, the opposite of calm luxury"},
+    "nudity": {"incidental": "swimwear at a beach or pool",
+               "notable": "revealing or suggestive clothing or poses",
+               "heavy": "nudity or explicit sexual content"},
+}
+for _set in CATEGORY_SETS.values():
+    for _key, _cat in _set.items():
+        _cat.setdefault("levels", LEVEL_NOTES.get(_key))
+
+
+def min_level(cat: str) -> int:
+    """The level (1-3) at which `cat` counts as a flag for this job."""
+    return MIN_LEVELS.get(cat, LEVELS[DEFAULT_MIN_LEVEL])
+
+
 CONTENT_CATEGORIES = CATEGORY_SETS[CATEGORY_SET]
 
 # --- Parallelism ---
