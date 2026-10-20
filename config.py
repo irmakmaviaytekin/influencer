@@ -176,7 +176,8 @@ COMPETITOR_BRANDS_FILE = ROOT / "competitor_brands.txt"
 # Brands whose deals are flagged for human review in the text pass - never
 # auto-rejected. One brand or term per line; a deal post is flagged when a
 # term appears in a mentioned/tagged handle or as a whole word in its caption.
-# Set per job, e.g. REVIEW_BRANDS_FILE=pizza_brands.txt. Missing file = none.
+# Set per job, e.g. REVIEW_BRANDS_FILE=pizza_brands.txt (create it for the job;
+# not kept in the repo). Missing file = none.
 REVIEW_BRANDS_FILE = ROOT / os.getenv("REVIEW_BRANDS_FILE", "review_brands.txt")
 
 # --- Run metrics ---

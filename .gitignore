@@ -20,3 +20,6 @@ runs/
 
 # Per-job reports (contain scraped data)
 reports/
+
+# macOS folder metadata
+.DS_Store
