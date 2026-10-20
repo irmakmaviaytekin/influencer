@@ -1,0 +1,39 @@
+{
+  "name": "example-brand-2026-10",
+  "brand": "Example Brand",
+  "campaign": "Autumn launch",
+  "notes": "Copy this file, rename it, and edit. Settings you leave out use the defaults. Real job files (jobs/*.json except this one) are gitignored because they list real creators.",
+
+  "profiles": ["creator_one", "creator_two", "creator_three"],
+  "months_lookback": 5,
+  "videos_only": true,
+  "vision_model": "claude-haiku-4-5",
+
+  "default_min_level": "heavy",
+
+  "competitors": ["competitor brand", "competitorhandle"],
+  "review_brands": [],
+
+  "categories": {
+    "partying": {
+      "label": "Party energy",
+      "description": "high-energy party content: club or party scenes, dancing crowds, nightlife, festival or rave atmosphere. A quiet dinner or small calm gathering does not count",
+      "min_level": "heavy"
+    },
+    "drinking": {
+      "label": "Alcohol",
+      "description": "someone consuming alcohol, or alcoholic drinks clearly visible or promoted. A bottle on a shelf behind someone does not count by itself",
+      "min_level": "notable",
+      "levels": {
+        "incidental": "a glass of wine with a meal, a bottle in the background",
+        "notable": "drinking is clearly the focus of part of the post",
+        "heavy": "visibly drunk, drinking games, alcohol is the point of the post"
+      }
+    },
+    "swearing": {
+      "label": "Swearing",
+      "text_only": true,
+      "description": "profanity in on-screen text or in the caption"
+    }
+  }
+}

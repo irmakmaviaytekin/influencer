@@ -34,7 +34,14 @@ multi-customer version is possible later without a rewrite.
 - `export_report.py` — CSV/XLSX export alongside the HTML report.
 - `compare_runs.py` — compares two `runs/` files: time, cost, per-post flag differences, and
   whether an earlier report's flags are still found.
-- `config.py` — all settings; keys come from `.env`. Per job, set by environment variable:
+- `config.py` — all settings; keys come from `.env`.
+- `jobs/<name>.json` — one brand/campaign's whole setup, run with `python main.py --job <name>`:
+  creators, `months_lookback`, `videos_only`, `vision_model`, `default_min_level`, `competitors`,
+  `review_brands`, and `categories` (each with a description of what counts / doesn't, optional
+  level meanings and its own `min_level`). `jobs/example.json` shows the format; real jobs are
+  gitignored (they list real creators). Environment variables still override the file. Every run
+  saves the exact criteria it used under `"job"` in `runs/*.json`. Bad job files fail with a
+  specific message before anything is scraped or charged. Per job, set by environment variable:
   `CATEGORY_SET` (named category sets: `standard`, `pizza`, `quiet_luxury`), `REVIEW_BRANDS_FILE`,
   `MONTHS_LOOKBACK`, `VISION_MODEL`, `REPORT_NAME`, `VIDEOS_ONLY=1` (skip photos/carousels).
 - Inputs: `profiles.txt`, `competitor_brands.txt`, optional review-brands file. Output:
@@ -116,7 +123,7 @@ with evidence, approve/override with a note (logged), export a report for legal.
   - Store output as the reusable per-post descriptions above, not just yes/no flags.
   - Measure time and cost per profile before and after every change (`runs/` +
     `compare_runs.py`).
-- **Phase 2 — Criteria-based judging.** Structured criteria, chat helper to draft them, per-run
+- **Phase 2 — Criteria-based judging.** *Criteria are now saved job files (2026-10-20); the chat helper, per-run judging against cached descriptions and evidence thumbnails are still open.* Structured criteria, chat helper to draft them, per-run
   judging against cached descriptions, competitor list per run, evidence on every flag.
 - **Phase 3 — Streamlit app** for the team.
 - **Phase 4 — Monitoring after go-live.** Scheduled re-scans of active creators' new posts, alerts

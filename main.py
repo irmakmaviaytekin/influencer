@@ -14,12 +14,24 @@ Usage:
     python main.py user1 user2     # only these usernames
     python main.py --text-only ... # stop after the text pass (shows vision estimate)
 
-Per-job settings come from the environment (see config.py): CATEGORY_SET,
-REVIEW_BRANDS_FILE, REPORT_NAME.
+Per-job settings live in a job file: python main.py --job quiet-luxury reads
+jobs/quiet-luxury.json (creators, lookback, model, categories and their
+sensitivity, competitors, review brands - see jobs/example.json). Environment
+variables (CATEGORY_SET, MIN_LEVELS, REPORT_NAME, ...) override the file.
 """
+import os
+import sys
+
+# --job <name|path> must be applied before config is imported (it reads JOB at import).
+if "--job" in sys.argv:
+    _i = sys.argv.index("--job")
+    if _i + 1 >= len(sys.argv):
+        sys.exit("--job needs a job name or file, e.g. --job quiet-luxury")
+    os.environ["JOB"] = sys.argv[_i + 1]
+    del sys.argv[_i:_i + 2]
+
 import html
 import json
-import sys
 import threading
 import time
 import traceback
@@ -57,10 +69,14 @@ def load_profiles() -> list[str]:
 
 
 def load_competitors() -> set[str]:
+    if config.JOB_COMPETITORS is not None:
+        return {b.strip().lstrip("@").lower() for b in config.JOB_COMPETITORS if b.strip()}
     return {b.lower() for b in load_list(config.COMPETITOR_BRANDS_FILE)}
 
 
 def load_review_brands() -> list[str]:
+    if config.JOB_REVIEW_BRANDS is not None:
+        return [b.strip().lstrip("@") for b in config.JOB_REVIEW_BRANDS if b.strip()]
     return load_list(config.REVIEW_BRANDS_FILE)
 
 
@@ -518,6 +534,7 @@ def write_run_metrics(rows: list[dict], started: datetime, text_s: float,
     summary = {
         "started": started.isoformat(timespec="seconds"),
         "profiles": [r["username"] for r in rows],
+        "job": config.job_snapshot(),
         "settings": {"vision_model": config.VISION_MODEL,
                      "frames_per_video": config.FRAMES_PER_VIDEO,
                      "include_video_cover": config.INCLUDE_VIDEO_COVER,
@@ -558,7 +575,9 @@ def main():
 
     args = sys.argv[1:]
     text_only = "--text-only" in args
-    profiles = [a.lstrip("@") for a in args if a != "--text-only"] or load_profiles()
+    profiles = ([a.lstrip("@") for a in args if a != "--text-only"]
+                or [p.strip().lstrip("@") for p in (config.JOB_PROFILES or []) if p.strip()]
+                or load_profiles())
     competitors = load_competitors()
     review_brands = load_review_brands()
     print(f"Job: categories={config.CATEGORY_SET} ({', '.join(CAT_LABELS.values())}) | "

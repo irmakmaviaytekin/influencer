@@ -5,6 +5,43 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# --- Job file (everything one brand/campaign run needs) ---
+# python main.py --job quiet-luxury   (or JOB=jobs/quiet-luxury.json)
+# A job file sets the creators, lookback, model, categories with their level
+# meanings and minimum levels, competitors and review brands, and is saved with
+# every run's results. Precedence: environment variable > job file > default.
+import json
+
+JOB_ROOT = Path(__file__).parent
+
+
+def _load_job(spec: str) -> tuple[dict, str]:
+    if not spec:
+        return {}, ""
+    for cand in (Path(spec), JOB_ROOT / spec, JOB_ROOT / "jobs" / spec,
+                 JOB_ROOT / "jobs" / f"{spec}.json", JOB_ROOT / f"{spec}.json"):
+        if cand.is_file():
+            try:
+                return json.loads(cand.read_text()), str(cand)
+            except json.JSONDecodeError as e:
+                raise SystemExit(f"Job file {cand} is not valid JSON: {e}")
+    raise SystemExit(f"Job file '{spec}' not found (looked in jobs/ and the project folder).")
+
+
+JOB, JOB_FILE = _load_job(os.getenv("JOB", ""))
+_JOB_KEYS = {"name", "brand", "campaign", "profiles", "months_lookback", "videos_only",
+             "vision_model", "default_min_level", "categories", "category_set",
+             "competitors", "review_brands", "notes"}
+_unknown = set(JOB) - _JOB_KEYS
+if _unknown:
+    raise SystemExit(f"Job file {JOB_FILE}: unknown setting(s) {sorted(_unknown)}. "
+                     f"Allowed: {sorted(_JOB_KEYS)}")
+
+
+def _env_flag(name: str, default: bool) -> bool:
+    v = os.getenv(name)
+    return default if v is None else v.lower() in ("1", "true", "yes")
+
 # --- Credentials ---
 APIFY_TOKEN = os.getenv("APIFY_TOKEN", "")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
@@ -17,21 +54,21 @@ VIDEO_DIR = ROOT / "cache" / "videos"
 # Report file name without extension (.html/.csv/.xlsx are written next to
 # each other). Set REPORT_NAME per job, e.g. REPORT_NAME=reports/acme-2026-10,
 # so one job's reports never overwrite another's.
-REPORT_NAME = os.getenv("REPORT_NAME", "influencer_report")
+REPORT_NAME = os.getenv("REPORT_NAME", f"reports/{JOB['name']}" if JOB.get("name") else "influencer_report")
 OUTPUT_HTML = ROOT / f"{REPORT_NAME}.html"
 
 # --- Scraping ---
 # Apify actor that scrapes public Instagram profiles/posts.
 APIFY_ACTOR = "apify/instagram-scraper"
 # Only analyze posts from the last N months (30-day months); set per job.
-MONTHS_LOOKBACK = int(os.getenv("MONTHS_LOOKBACK", "12"))
+MONTHS_LOOKBACK = int(os.getenv("MONTHS_LOOKBACK", JOB.get("months_lookback", 12)))
 MAX_POSTS_PER_PROFILE = 200         # safety cap per profile
 
 # --- Content vision detection ---
 # Vision model, set per job with VISION_MODEL=<id>. Each model needs an entry
 # in VISION_MODELS: its price (USD per million tokens; images are billed as
 # input) and the extra request options it accepts.
-VISION_MODEL = os.getenv("VISION_MODEL", "claude-haiku-4-5")  # default since 2026-10-20 (about 3x cheaper than Sonnet 4.5)
+VISION_MODEL = os.getenv("VISION_MODEL", JOB.get("vision_model", "claude-haiku-4-5"))  # default since 2026-10-20 (about 3x cheaper than Sonnet 4.5)
 VISION_MODELS = {
     # temperature=0 so the same frames give the same flags on every run.
     "claude-sonnet-4-5": {"price_in": 3.00, "price_out": 15.00,
@@ -66,7 +103,7 @@ MAX_VISION_POSTS_PER_PROFILE = None
 # Per job, VIDEOS_ONLY=1 sends only videos/reels to the vision pass (no photos
 # or carousels): far fewer posts to analyze, and the brand-deal text pass is
 # unaffected. Default is off - photos and carousels are checked too.
-VIDEOS_ONLY = os.getenv("VIDEOS_ONLY", "").lower() in ("1", "true", "yes")
+VIDEOS_ONLY = _env_flag("VIDEOS_ONLY", bool(JOB.get("videos_only", False)))
 
 # --- Content categories (vision pass) ---
 # What the model checks each video for, as named sets; pick one per job with
@@ -149,7 +186,7 @@ CATEGORY_SETS = {
                                      "by itself"},
     },
 }
-CATEGORY_SET = os.getenv("CATEGORY_SET", "standard")
+CATEGORY_SET = os.getenv("CATEGORY_SET", "job" if JOB.get("categories") else JOB.get("category_set", "standard"))
 
 # --- Sensitivity (per brand/job) ---
 # The model rates each category 0-3 for every post (0 none, 1 incidental,
@@ -160,7 +197,7 @@ CATEGORY_SET = os.getenv("CATEGORY_SET", "standard")
 LEVELS = {"incidental": 1, "notable": 2, "heavy": 3}
 LEVEL_NAMES = {v: k for k, v in LEVELS.items()}
 # Unless a job says otherwise, only heavy cases count as a flag.
-DEFAULT_MIN_LEVEL = "heavy"
+DEFAULT_MIN_LEVEL = os.getenv("DEFAULT_MIN_LEVEL", JOB.get("default_min_level", "heavy"))
 
 
 def _parse_min_levels(spec: str) -> dict:
@@ -204,6 +241,43 @@ LEVEL_NOTES = {
                "notable": "revealing or suggestive clothing or poses",
                "heavy": "nudity or explicit sexual content"},
 }
+_PALETTE = ["#c0392b", "#8e44ad", "#d35400", "#16704a", "#2c3e50", "#7b241c", "#b9770e", "#1f618d"]
+
+
+def _build_job_categories(raw: dict) -> dict:
+    """Validate the job file's categories and fill defaults (clear errors, no silent typos)."""
+    if not isinstance(raw, dict) or not raw:
+        raise SystemExit(f"Job file {JOB_FILE}: 'categories' must be an object with at least one category.")
+    out = {}
+    for i, (key, c) in enumerate(raw.items()):
+        where = f"Job file {JOB_FILE}: category '{key}'"
+        if not isinstance(c, dict) or not str(c.get("description", "")).strip():
+            raise SystemExit(f"{where} needs a 'description' saying what counts and what doesn't.")
+        bad = set(c) - {"label", "color", "text_only", "description", "levels", "min_level"}
+        if bad:
+            raise SystemExit(f"{where}: unknown field(s) {sorted(bad)}.")
+        levels = c.get("levels")
+        if levels is not None:
+            if not isinstance(levels, dict) or set(levels) - set(LEVELS):
+                raise SystemExit(f"{where}: 'levels' keys must be among {list(LEVELS)}.")
+        ml = c.get("min_level")
+        if ml is not None and ml not in LEVELS:
+            raise SystemExit(f"{where}: 'min_level' must be one of {list(LEVELS)}, not '{ml}'.")
+        out[key] = {"label": c.get("label", key.replace("_", " ").title()),
+                    "color": c.get("color", _PALETTE[i % len(_PALETTE)]),
+                    "text_only": bool(c.get("text_only", False)),
+                    "description": c["description"].strip(),
+                    "levels": levels, "min_level": LEVELS[ml] if ml else None}
+    return out
+
+
+if JOB.get("categories"):
+    CATEGORY_SETS["job"] = _build_job_categories(JOB["categories"])
+if DEFAULT_MIN_LEVEL not in LEVELS:
+    raise SystemExit(f"default_min_level must be one of {list(LEVELS)}, not '{DEFAULT_MIN_LEVEL}'.")
+if CATEGORY_SET not in CATEGORY_SETS:
+    raise SystemExit(f"Unknown category set '{CATEGORY_SET}'. Known: {list(CATEGORY_SETS)}")
+
 for _set in CATEGORY_SETS.values():
     for _key, _cat in _set.items():
         _cat.setdefault("levels", LEVEL_NOTES.get(_key))
@@ -211,7 +285,8 @@ for _set in CATEGORY_SETS.values():
 
 def min_level(cat: str) -> int:
     """The level (1-3) at which `cat` counts as a flag for this job."""
-    return MIN_LEVELS.get(cat, LEVELS[DEFAULT_MIN_LEVEL])
+    own = CATEGORY_SETS[CATEGORY_SET].get(cat, {}).get("min_level")
+    return MIN_LEVELS.get(cat, own or LEVELS[DEFAULT_MIN_LEVEL])
 
 
 CONTENT_CATEGORIES = CATEGORY_SETS[CATEGORY_SET]
@@ -253,6 +328,8 @@ REVIEW_BRANDS_FILE = ROOT / os.getenv("REVIEW_BRANDS_FILE", "review_brands.txt")
 # Every run writes runs/<timestamp>.json: phase times, per-video timings,
 # token usage, cost and per-video results, so runs can be compared.
 RUNS_DIR = ROOT / "runs"
+if VISION_MODEL not in VISION_MODELS:
+    raise SystemExit(f"Unknown vision model '{VISION_MODEL}'. Known: {list(VISION_MODELS)}")
 PRICE_INPUT_PER_MTOK = VISION_MODELS[VISION_MODEL]["price_in"]
 PRICE_OUTPUT_PER_MTOK = VISION_MODELS[VISION_MODEL]["price_out"]
 
@@ -260,3 +337,22 @@ PRICE_OUTPUT_PER_MTOK = VISION_MODELS[VISION_MODEL]["price_out"]
 # Rough seconds per video (download + frame sample + vision call), used to
 # estimate vision-pass duration after the text pass completes.
 EST_SECONDS_PER_POST = 12
+
+# Lists given inside the job file (None = fall back to the text files above).
+JOB_PROFILES = JOB.get("profiles")
+JOB_COMPETITORS = JOB.get("competitors")
+JOB_REVIEW_BRANDS = JOB.get("review_brands")
+
+
+def job_snapshot() -> dict:
+    """The exact criteria this run used, saved with its results so a decision can be explained later."""
+    return {
+        "job_file": JOB_FILE or None, "name": JOB.get("name"), "brand": JOB.get("brand"),
+        "campaign": JOB.get("campaign"), "notes": JOB.get("notes"),
+        "months_lookback": MONTHS_LOOKBACK, "videos_only": VIDEOS_ONLY,
+        "vision_model": VISION_MODEL, "category_set": CATEGORY_SET,
+        "categories": {k: {"label": v["label"], "description": v["description"],
+                           "text_only": v["text_only"], "levels": v.get("levels"),
+                           "min_level": LEVEL_NAMES[min_level(k)]}
+                       for k, v in CONTENT_CATEGORIES.items()},
+    }

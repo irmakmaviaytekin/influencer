@@ -23,3 +23,7 @@ reports/
 
 # macOS folder metadata
 .DS_Store
+
+# Job files list real creators - keep them local (the example stays)
+jobs/*
+!jobs/example.json
