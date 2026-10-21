@@ -157,15 +157,36 @@ def page_review() -> None:
     m3.metric("Flagged posts", len({f["url"] for f in flags}))
     m4.metric("Reviewed", sum(1 for r in table if r["creator"] in decisions))
 
-    df = pd.DataFrame([{
-        "Creator": r["creator"],
-        "Decision": decisions.get(r["creator"], {}).get("decision", "—"),
-        "Flagged posts": r["flagged_posts"],
-        **{c.get("label", k): r["by_category"].get(k, 0) for k, c in cats.items()},
-        "Not analyzed": ("⚠ " if r["incomplete"] else "") + str(r["not_analyzed"] or ""),
-    } for r in table])
-    st.caption("Select a creator to see the evidence.")
-    ev = st.dataframe(df, width="stretch", hide_index=True, on_select="rerun",
+    lv = rl.profile_levels(run)
+    word = {0: "—", 1: "incidental", 2: "notable", 3: "heavy"}
+    # (faint = seen but below the sensitivity, strong = flagged), by highest level seen
+    tile = {1: ("rgba(150,150,150,.14)", "rgba(150,150,150,.32)"),
+            2: ("rgba(240,160,40,.16)", "rgba(240,160,40,.50)"),
+            3: ("rgba(220,60,60,.18)", "rgba(220,60,60,.55)")}
+    rows, css = [], []
+    for r in table:
+        d = decisions.get(r["creator"], {})
+        dec = d.get("decision", "—") + (f" → {d['escalated_to']}" if d.get("escalated_to") else "")
+        row = {"Creator": r["creator"], "Decision": dec, "Flagged posts": r["flagged_posts"]}
+        shade = {"Creator": "", "Decision": "", "Flagged posts": ""}
+        for k, c in cats.items():
+            lab, n = c.get("label", k), r["by_category"].get(k, 0)
+            if has_levels:
+                mx = lv.get(r["creator"], {}).get(k, 0)
+                row[lab] = "—" if not mx else (f"{word[mx]} · {n}" if n else word[mx])
+                shade[lab] = f"background-color: {tile[mx][1 if n else 0]}" if mx else ""
+            else:  # older run: only yes/no flags were saved
+                row[lab] = str(n) if n else "—"
+                shade[lab] = f"background-color: {tile[3][1]}" if n else ""
+        row["Not analyzed"] = ("⚠ " if r["incomplete"] else "") + str(r["not_analyzed"] or "")
+        shade["Not analyzed"] = ""
+        rows.append(row)
+        css.append(shade)
+    df = pd.DataFrame(rows)
+    styled = df.style.apply(lambda _: pd.DataFrame(css, index=df.index, columns=df.columns), axis=None)
+    st.caption("Each tile shows the highest level seen. Strong colour = flagged at the sensitivity above "
+               "(the number is flagged posts); faint = seen, but below it. Select a creator to see the evidence.")
+    ev = st.dataframe(styled, width="stretch", hide_index=True, on_select="rerun",
                       selection_mode="single-row", key=f"tbl|{rid}")
     sel = ev.selection.rows
     st.session_state.setdefault("export", {})
@@ -219,17 +240,23 @@ def page_review() -> None:
     with st.form(f"decide|{rid}|{creator}"):
         options = rl.DECISIONS
         choice = st.radio("Decision", options, horizontal=True,
-                          index=options.index(prev["decision"]) if prev.get("decision") in options else 2)
+                          index=options.index(prev["decision"]) if prev.get("decision") in options
+                          else options.index("Needs more review"))
+        escalate_to = st.text_input("If escalating — to whom? (e.g. legal, brand lead)",
+                                    value=prev.get("escalated_to", ""))
         note = st.text_area("Note (why — this goes in the report)", value=prev.get("note", ""))
         if st.form_submit_button("Save decision", type="primary"):
             who = st.session_state.get("reviewer", "").strip()
             if not who:
                 st.error("Enter your name in the sidebar first, so the decision is traceable.")
+            elif choice == "Escalate" and not escalate_to.strip():
+                st.error("Say who this is escalated to.")
             else:
                 dismissed = [u for u in by_post if st.session_state.get(f"dis|{rid}|{creator}|{u}")]
                 rl.log_decision({
                     "run": rid, "job": job.get("name"), "brand": job.get("brand"),
                     "campaign": job.get("campaign"), "creator": creator, "decision": choice,
+                    "escalated_to": escalate_to.strip() if choice == "Escalate" else "",
                     "note": note, "reviewer": who, "dismissed": dismissed,
                     "flags_shown": len(by_post), "sensitivity": mins})
                 st.session_state["export"].pop(rid, None)
@@ -434,7 +461,7 @@ def page_log() -> None:
         st.info("No decisions yet.")
         return
     df = pd.DataFrame(d).sort_values("ts", ascending=False)
-    cols = [c for c in ("ts", "creator", "decision", "reviewer", "note", "brand", "campaign", "job", "run") if c in df]
+    cols = [c for c in ("ts", "creator", "decision", "escalated_to", "reviewer", "note", "brand", "campaign", "job", "run") if c in df]
     st.dataframe(df[cols], width="stretch", hide_index=True)
     st.download_button("⬇ Download log (.csv)", df[cols].to_csv(index=False), file_name="decision-log.csv",
                        mime="text/csv")

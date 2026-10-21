@@ -37,7 +37,7 @@ multi-customer version is possible later without a rewrite.
 - `config.py` — all settings; keys come from `.env`.
 - `app.py` — Streamlit GUI, `streamlit run app.py` (local only). Pages: **Review** (pick a run,
   set sensitivity per category - re-applied from saved levels at no cost, see each flagged post
-  with its evidence frame, reason and link, dismiss flags, record Approve / Reject / Needs more
+  with its evidence frame, reason and link, dismiss flags, record Approve / Reject / Escalate (to a named person) / Needs more
   review with a note, export an .xlsx for legal), **Run a job** (size/cost check first, then run;
   live progress; the engine runs as a separate process), **Jobs** (create/edit job files; saves are
   validated by the engine's own checks), **Decision log**. `review_lib.py` is its data layer
@@ -136,7 +136,7 @@ with evidence, approve/override with a note (logged), export a report for legal.
     `compare_runs.py`).
 - **Phase 2 — Criteria-based judging.** *Criteria are now saved job files (2026-10-20); the chat helper, per-run judging against cached descriptions and evidence thumbnails are still open.* Structured criteria, chat helper to draft them, per-run
   judging against cached descriptions, competitor list per run, evidence on every flag.
-- **Phase 3 — Streamlit app** for the team. *v1 built 2026-10-20 (see `app.py` above): review with evidence frames, sensitivity, decisions log, legal export, job editor, run launcher. Still open: user accounts/permissions (it is a single local app), a chat helper for drafting criteria, rerun-only-incomplete-creators button, and a visual check of the review screen by a person.*
+- **Phase 3 — Streamlit app** for the team. *Review overview shows a colour-coded tile per creator and category (highest level seen; strong = flagged at the chosen sensitivity, faint = below it), and Escalate is a decision (2026-10-21; ideas taken from Viral Nation Secure and influData's public pages). v1 built 2026-10-20 (see `app.py` above): review with evidence frames, sensitivity, decisions log, legal export, job editor, run launcher. Still open: user accounts/permissions (it is a single local app), a chat helper for drafting criteria, rerun-only-incomplete-creators button, and a visual check of the review screen by a person.*
 - **Phase 4 — Monitoring after go-live.** Scheduled re-scans of active creators' new posts, alerts
   on new flags, decision log / audit trail.
 

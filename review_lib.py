@@ -16,7 +16,7 @@ DECISIONS_FILE = ROOT / "decisions" / "decisions.jsonl"
 
 LEVELS = {"incidental": 1, "notable": 2, "heavy": 3}
 LEVEL_NAMES = {v: k for k, v in LEVELS.items()}
-DECISIONS = ["Approve", "Reject", "Needs more review"]
+DECISIONS = ["Approve", "Reject", "Escalate", "Needs more review"]
 
 
 # --------------------------------------------------------------------------- runs
@@ -89,6 +89,19 @@ def flags_for(run: dict, mins: dict[str, str]) -> list[dict]:
                 out.append({"profile": prof, "url": p["url"], "category": cat, "level": None,
                             "reason": (p.get("evidence") or {}).get(cat, ""),
                             "thumbs": p.get("thumbs") or []})
+    return out
+
+
+def profile_levels(run: dict) -> dict[str, dict[str, int]]:
+    """Highest level the model saw per creator and category, whatever the sensitivity -
+    so a reviewer can tell 'nothing' from 'something minor, below the bar'."""
+    out: dict[str, dict[str, int]] = {}
+    for p in run.get("per_post", []):
+        if p.get("error"):
+            continue
+        for cat, lvl in (p.get("levels") or {}).items():
+            cur = out.setdefault(p.get("profile", "?"), {})
+            cur[cat] = max(cur.get(cat, 0), lvl)
     return out
 
 
@@ -167,19 +180,20 @@ def export_xlsx(run: dict, mins: dict[str, str]) -> bytes:
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Decisions"
-    ws.append(["Creator", "Decision", "Reviewer", "Decided", "Note", "Flagged posts (open)",
-               "Flags by category", "Posts not analyzed"])
+    ws.append(["Creator", "Decision", "Escalated to", "Reviewer", "Decided", "Note",
+               "Flagged posts (open)", "Flags by category", "Posts not analyzed"])
     for r in table:
         d = decisions.get(r["creator"], {})
         open_flags = [f for f in flags if f["profile"] == r["creator"]
                       and (r["creator"], f["url"]) not in dismissed]
-        ws.append([r["creator"], d.get("decision", "— not reviewed —"), d.get("reviewer", ""),
-                   d.get("ts", ""), d.get("note", ""), len({f["url"] for f in open_flags}),
+        ws.append([r["creator"], d.get("decision", "— not reviewed —"), d.get("escalated_to", ""),
+                   d.get("reviewer", ""), d.get("ts", ""), d.get("note", ""),
+                   len({f["url"] for f in open_flags}),
                    ", ".join(f"{cats.get(k, {}).get('label', k)} {n}" for k, n in r["by_category"].items()),
                    r["not_analyzed"] or ""])
     for c in ws[1]:
         c.font, c.fill = bold, head_fill
-    for col, w in zip("ABCDEFGH", (24, 20, 16, 20, 50, 18, 36, 18)):
+    for col, w in zip("ABCDEFGHI", (24, 20, 18, 16, 20, 50, 18, 36, 18)):
         ws.column_dimensions[col].width = w
     ws.freeze_panes = "A2"
 
