@@ -27,3 +27,7 @@ reports/
 # Job files list real creators - keep them local (the example stays)
 jobs/*
 !jobs/example.json
+
+# Evidence frames and the reviewer decision log (real people's images / decisions)
+*-evidence/
+decisions/

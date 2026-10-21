@@ -56,6 +56,10 @@ VIDEO_DIR = ROOT / "cache" / "videos"
 # so one job's reports never overwrite another's.
 REPORT_NAME = os.getenv("REPORT_NAME", f"reports/{JOB['name']}" if JOB.get("name") else "influencer_report")
 OUTPUT_HTML = ROOT / f"{REPORT_NAME}.html"
+# Frames the model cited for posts it noticed something in, so a reviewer can see the
+# evidence without re-watching. Contains real people's images: keep it local and
+# delete it with the report when the retention period ends.
+EVIDENCE_DIR = ROOT / f"{REPORT_NAME}-evidence"
 
 # --- Scraping ---
 # Apify actor that scrapes public Instagram profiles/posts.
@@ -301,6 +305,10 @@ SCRAPE_WORKERS = 4
 VISION_WORKERS = 8
 # SDK retries (with backoff) for rate-limited or failed vision calls.
 API_MAX_RETRIES = 5
+# A vision call normally takes ~10-20s. Without a limit the SDK waits up to 10
+# minutes on a hung connection (a run once sat idle for 20+ minutes on 5 stuck
+# calls); with one, the call is abandoned and retried.
+API_TIMEOUT_S = 90
 
 # --- Brand-deal detection ---
 # Caption signals that indicate a paid partnership.

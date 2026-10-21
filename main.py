@@ -209,6 +209,7 @@ def analyze_post(post: dict, client: anthropic.Anthropic) -> dict:
     return {"url": post["url"], "error": result["error"], "hits": hits,
             "evidence": {c: f"[{config.LEVEL_NAMES[content[c]['level']]}] {content[c]['evidence']}"
                          for c in hits},
+            "thumbs": result.get("thumbs", []),
             "levels": {c: v["level"] for c, v in seen.items()},
             "observations": {c: v["evidence"] for c, v in seen.items()},
             "total_s": time.monotonic() - start, **result["metrics"]}
@@ -585,7 +586,8 @@ def main():
           f"({config.REVIEW_BRANDS_FILE.name}) | report={config.OUTPUT_HTML}")
     # Concurrent requests can hit rate limits; the SDK backs off and retries 429s.
     client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY,
-                                 max_retries=config.API_MAX_RETRIES)
+                                 max_retries=config.API_MAX_RETRIES,
+                                 timeout=config.API_TIMEOUT_S)
     run_started = datetime.now()
 
     # --- Text pass ---

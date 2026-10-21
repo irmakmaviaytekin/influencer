@@ -315,6 +315,29 @@ def _content_prompt(post: dict) -> str:
     )
 
 
+def _save_evidence(post: dict, images: list[tuple[str, bytes]], result: dict) -> list[str]:
+    """Save up to 2 frames the model cited (else the first image) for a post it noticed
+    something in. Returns paths relative to the project folder."""
+    seen = [v["evidence"] for v in result.values() if v["level"] > 0]
+    if not seen or not images:
+        return []
+    text = " ".join(seen).lower()
+    picks = []
+    for i, (label, _) in enumerate(images):
+        key = label.split(" of ")[0].split(" (")[0].lower()  # "slide 3", "video frame 2", "cover image"
+        if re.search(rf"\b{re.escape(key)}\b", text):
+            picks.append(i)
+    picks = picks[:2] or [0]
+    code = post["url"].rstrip("/").split("/")[-1]
+    config.EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+    out = []
+    for n, i in enumerate(picks, 1):
+        path = config.EVIDENCE_DIR / f"{code}-{n}.jpg"
+        path.write_bytes(images[i][1])
+        out.append(path.relative_to(config.ROOT).as_posix())
+    return out
+
+
 def _empty_result() -> dict:
     return {cat: {"level": 0, "present": False, "evidence": ""} for cat in CONTENT_CATEGORIES}
 
@@ -400,4 +423,5 @@ def detect_content(post: dict, client: anthropic.Anthropic) -> dict:
             "present": level >= config.min_level(cat),
             "evidence": str(entry.get("evidence", "")),
         }
-    return {"error": None, "categories": result, "metrics": metrics}
+    return {"error": None, "categories": result, "metrics": metrics,
+            "thumbs": _save_evidence(post, images, result)}
