@@ -22,6 +22,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+import assistant_lib as al
 import config
 import review_lib as rl
 
@@ -431,6 +432,19 @@ def page_jobs() -> None:
     default_min = st.select_slider("Default sensitivity — flag at this level or above", LEVEL_OPTIONS,
                                    value=data.get("default_min_level", "heavy"), key=f"dm|{key}")
 
+    with st.expander("Advanced settings"):
+        a1, a2 = st.columns(2)
+        frames = a1.number_input("Frames per video", 1, 12, int(data.get("frames_per_video", 6)), key=f"fr|{key}",
+                                 help="More frames catch more, and cost more.")
+        max_posts = a2.number_input("Max posts scraped per creator", 10, 500,
+                                    int(data.get("max_posts_per_profile", 200)), key=f"mp|{key}")
+        cap_on = a1.checkbox("Limit posts analyzed per creator", data.get("max_vision_posts_per_profile") is not None,
+                             key=f"cp|{key}", help="Cheap way to sample a creator instead of reading everything.")
+        cap = a2.number_input("Posts analyzed per creator (if limited)", 1, 1000,
+                              int(data.get("max_vision_posts_per_profile") or 30), key=f"cv|{key}", disabled=not cap_on)
+        cover = a1.checkbox("Also analyze the video cover image", bool(data.get("include_video_cover", True)),
+                            key=f"cvr|{key}")
+
     st.markdown("**What to look for**")
     st.caption("Describe what counts and what doesn't. The model rates each post 0–3 per category; "
                "a post is flagged at the category's level or above (blank = the default above).")
@@ -471,7 +485,11 @@ def page_jobs() -> None:
                "name": slug, "brand": brand, "campaign": campaign, "profiles": lst(profiles),
                "months_lookback": int(months), "videos_only": bool(videos_only), "vision_model": model,
                "default_min_level": default_min, "competitors": lst(competitors),
-               "review_brands": lst(review), "categories": cats}
+               "review_brands": lst(review), "categories": cats,
+               "frames_per_video": int(frames), "max_posts_per_profile": int(max_posts),
+               "include_video_cover": bool(cover)}
+        if cap_on:
+            job["max_vision_posts_per_profile"] = int(cap)
         JOBS_DIR.mkdir(exist_ok=True)
         path = JOBS_DIR / f"{slug}.json"
         backup = path.read_text() if path.exists() else None
@@ -482,6 +500,109 @@ def page_jobs() -> None:
             st.error(problem)
         else:
             st.success(f"Saved jobs/{slug}.json — {len(job['profiles'])} creators, {len(cats)} categories.")
+
+
+# --------------------------------------------------------------------- Setup assistant
+def save_job(job: dict) -> str | None:
+    """Write jobs/<name>.json if the engine accepts it; otherwise leave things as they were."""
+    JOBS_DIR.mkdir(exist_ok=True)
+    path = JOBS_DIR / f"{job['name']}.json"
+    backup = path.read_text() if path.exists() else None
+    path.write_text(json.dumps(job, indent=2))
+    problem = validate_job(path)
+    if problem:
+        path.write_text(backup) if backup is not None else path.unlink()
+    return problem
+
+
+def _draft_cost(d: dict) -> tuple[int, float]:
+    per = 4 if d.get("videos_only") else 12  # rough posts per creator per month
+    n = len(d.get("profiles") or []) * int(d.get("months_lookback", 12)) * per
+    cap = d.get("max_vision_posts_per_profile")
+    if cap:
+        n = min(n, len(d.get("profiles") or []) * cap)
+    return n, est_cost(n, d.get("vision_model", config.VISION_MODEL))
+
+
+def page_assistant() -> None:
+    st.title("Setup assistant")
+    st.caption("Tell it what you're screening for; it fills in the job. Check the draft on the right, then save.")
+    ss = st.session_state
+    ss.setdefault("asst_msgs", [])
+    ss.setdefault("asst_draft", {})
+
+    left, right = st.columns([3, 2], gap="large")
+    with right:
+        existing = {p.stem: p for p in job_files()}
+        pick = st.selectbox("Start from", ["(blank)"] + list(existing), key="asst_pick")
+        if st.button("Load into draft", disabled=pick == "(blank)"):
+            ss.asst_draft = read_job(existing[pick])
+            ss.asst_msgs = []
+            st.rerun()
+        d = ss.asst_draft
+        st.markdown("**Draft job**")
+        if not d:
+            st.caption("Empty so far.")
+        else:
+            st.markdown(f"**{d.get('brand') or '—'}** · {d.get('campaign') or '—'} · `{d.get('name') or 'unnamed'}`")
+            st.markdown(f"{len(d.get('profiles') or [])} creators · {d.get('months_lookback', 12)} months · "
+                        f"{'reels only' if d.get('videos_only') else 'all posts'} · {d.get('vision_model', config.VISION_MODEL)}")
+            st.markdown(f"Flag at **{d.get('default_min_level', 'heavy')}** or above by default")
+            for k, v in (d.get("categories") or {}).items():
+                st.markdown(f"- **{v.get('label', k)}** ({v.get('min_level') or 'default'}): {v.get('description', '')}")
+            if d.get("competitors"):
+                st.markdown("Competitors (auto-reject): " + ", ".join(d["competitors"]))
+            if d.get("review_brands"):
+                st.markdown("Brands for a person to check: " + ", ".join(d["review_brands"]))
+            adv = {k: d[k] for k in ("frames_per_video", "max_posts_per_profile", "max_vision_posts_per_profile",
+                                    "include_video_cover") if k in d}
+            if adv:
+                st.caption("Advanced: " + ", ".join(f"{k.replace('_', ' ')} {v}" for k, v in adv.items()))
+            if d.get("profiles"):
+                n, cost = _draft_cost(d)
+                st.caption(f"Very rough size: about {n} posts, about ${cost:.2f} of analysis (check size on the Run page).")
+        todo = al.missing(d)
+        if d:
+            st.info("Still needed: " + ", ".join(todo)) if todo else st.success("Ready to save.")
+        if st.button("Save as job", type="primary", disabled=bool(todo)):
+            problem = save_job(d)
+            if problem:
+                st.error(problem)
+            else:
+                st.success(f"Saved jobs/{d['name']}.json. Open 'Run a job' to start it.")
+        if st.button("Start over", disabled=not (ss.asst_msgs or d)):
+            ss.asst_msgs, ss.asst_draft = [], {}
+            st.rerun()
+
+    with left:
+        if not ss.asst_msgs:
+            with st.chat_message("assistant"):
+                st.write("Hi - I'll help set up a screening job. Which brand and campaign is this for, "
+                         "and what do you want to watch out for?")
+        for m in ss.asst_msgs:
+            text = m["content"] if isinstance(m["content"], str) else "".join(
+                b.get("text", "") for b in m["content"] if b.get("type") == "text")
+            if text.strip():
+                with st.chat_message(m["role"]):
+                    st.write(text)
+        prompt = st.chat_input("e.g. 'Brand X, calm quiet-luxury campaign, flag heavy partying and violence'")
+        if prompt:
+            with st.chat_message("user"):
+                st.write(prompt)
+            if not config.ANTHROPIC_API_KEY:
+                st.error("No Anthropic API key is set, so the assistant can't answer. Use the Jobs page.")
+                return
+            import anthropic
+            client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY, timeout=60, max_retries=2)
+            with st.chat_message("assistant"), st.spinner("Thinking..."):
+                try:
+                    msgs, draft, _ = al.chat_turn(client, ss.asst_msgs + [{"role": "user", "content": prompt}],
+                                                  ss.asst_draft)
+                except Exception as e:  # noqa: BLE001 - show any API trouble in plain words
+                    st.error(al.friendly_error(e))
+                    return
+            ss.asst_msgs, ss.asst_draft = msgs, draft
+            st.rerun()
 
 
 # ------------------------------------------------------------------------ Decision log
@@ -504,7 +625,7 @@ with st.sidebar:
     st.markdown("<div class='brand'>Creator screening</div><div class='brandsub'>Brand-safety review</div>",
                 unsafe_allow_html=True)
     st.text_input("Your name", key="reviewer", help="Recorded with every decision")
-    page = st.radio("Page", ["Review", "Run a job", "Jobs", "Decision log"], label_visibility="collapsed")
+    page = st.radio("Page", ["Review", "Run a job", "Jobs", "Setup assistant", "Decision log"], label_visibility="collapsed")
     st.divider()
     with st.expander("Demo mode"):
         st.toggle("Mask creator names", key="mask_names", help="Shows Creator A, B, C on screen instead of handles")
@@ -512,4 +633,4 @@ with st.sidebar:
         st.caption("Screen only - saved decisions and exports keep the real names.")
     st.caption("Local tool - it shows real people's content. Don't expose it on the internet.")
 
-{"Review": page_review, "Run a job": page_run, "Jobs": page_jobs, "Decision log": page_log}[page]()
+{"Review": page_review, "Run a job": page_run, "Jobs": page_jobs, "Setup assistant": page_assistant, "Decision log": page_log}[page]()

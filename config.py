@@ -31,11 +31,28 @@ def _load_job(spec: str) -> tuple[dict, str]:
 JOB, JOB_FILE = _load_job(os.getenv("JOB", ""))
 _JOB_KEYS = {"name", "brand", "campaign", "profiles", "months_lookback", "videos_only",
              "vision_model", "default_min_level", "categories", "category_set",
-             "competitors", "review_brands", "notes"}
+             "competitors", "review_brands", "notes", "frames_per_video", "max_posts_per_profile",
+             "max_vision_posts_per_profile", "include_video_cover"}
 _unknown = set(JOB) - _JOB_KEYS
 if _unknown:
     raise SystemExit(f"Job file {JOB_FILE}: unknown setting(s) {sorted(_unknown)}. "
                      f"Allowed: {sorted(_JOB_KEYS)}")
+
+
+def _check_range(key: str, lo: int, hi: int, nullable: bool = False) -> None:
+    v = JOB.get(key)
+    if v is None and nullable:
+        return
+    if isinstance(v, bool) or not isinstance(v, int) or not lo <= v <= hi:
+        if key in JOB:
+            raise SystemExit(f"Job file {JOB_FILE}: '{key}' must be a whole number from {lo} to {hi}"
+                             f"{' (or empty)' if nullable else ''}, not {v!r}.")
+
+
+for _k, _lo, _hi, _n in (("months_lookback", 1, 36, False), ("frames_per_video", 1, 12, False),
+                         ("max_posts_per_profile", 10, 500, False),
+                         ("max_vision_posts_per_profile", 1, 1000, True)):
+    _check_range(_k, _lo, _hi, _n)
 
 
 def _env_flag(name: str, default: bool) -> bool:
@@ -66,7 +83,7 @@ EVIDENCE_DIR = ROOT / f"{REPORT_NAME}-evidence"
 APIFY_ACTOR = "apify/instagram-scraper"
 # Only analyze posts from the last N months (30-day months); set per job.
 MONTHS_LOOKBACK = int(os.getenv("MONTHS_LOOKBACK", JOB.get("months_lookback", 12)))
-MAX_POSTS_PER_PROFILE = 200         # safety cap per profile
+MAX_POSTS_PER_PROFILE = int(os.getenv("MAX_POSTS_PER_PROFILE", JOB.get("max_posts_per_profile", 200)))         # safety cap per profile
 
 # --- Content vision detection ---
 # Vision model, set per job with VISION_MODEL=<id>. Each model needs an entry
@@ -90,11 +107,11 @@ VISION_MODELS = {
     "claude-sonnet-5-5": {"price_in": 2.00, "price_out": 10.00,
                           "max_tokens": 4000, "options": {"output_config": {"effort": "medium"}}},
 }
-FRAMES_PER_VIDEO = 6                # evenly-sampled frames sent to the model
+FRAMES_PER_VIDEO = int(os.getenv("FRAMES_PER_VIDEO", JOB.get("frames_per_video", 6)))                # evenly-sampled frames sent to the model
 FRAME_MAX_WIDTH = 768               # downscale frames/photos before upload (px)
 # Also send a video's cover image (the thumbnail the creator picked, often with
 # title text) - one extra image per video.
-INCLUDE_VIDEO_COVER = True
+INCLUDE_VIDEO_COVER = _env_flag("INCLUDE_VIDEO_COVER", bool(JOB.get("include_video_cover", True)))
 # Frames per video slide inside a carousel. Every slide of a carousel is
 # checked (Instagram allows up to 20), photos as-is, videos as this many frames.
 FRAMES_PER_CAROUSEL_VIDEO = 3
@@ -103,7 +120,8 @@ FRAMES_PER_CAROUSEL_VIDEO = 3
 # every profile instead of full coverage of only a few (download bandwidth is
 # the bottleneck, not frame count, so this is the only lever that actually
 # reduces total time). Videos are taken in scrape order (most recent first).
-MAX_VISION_POSTS_PER_PROFILE = None
+MAX_VISION_POSTS_PER_PROFILE = (int(os.environ["MAX_VISION_POSTS_PER_PROFILE"]) if os.getenv("MAX_VISION_POSTS_PER_PROFILE")
+                                 else JOB.get("max_vision_posts_per_profile"))
 # Per job, VIDEOS_ONLY=1 sends only videos/reels to the vision pass (no photos
 # or carousels): far fewer posts to analyze, and the brand-deal text pass is
 # unaffected. Default is off - photos and carousels are checked too.
@@ -358,6 +376,9 @@ def job_snapshot() -> dict:
         "job_file": JOB_FILE or None, "name": JOB.get("name"), "brand": JOB.get("brand"),
         "campaign": JOB.get("campaign"), "notes": JOB.get("notes"),
         "months_lookback": MONTHS_LOOKBACK, "videos_only": VIDEOS_ONLY,
+        "frames_per_video": FRAMES_PER_VIDEO, "max_posts_per_profile": MAX_POSTS_PER_PROFILE,
+        "max_vision_posts_per_profile": MAX_VISION_POSTS_PER_PROFILE,
+        "include_video_cover": INCLUDE_VIDEO_COVER,
         "vision_model": VISION_MODEL, "category_set": CATEGORY_SET,
         "categories": {k: {"label": v["label"], "description": v["description"],
                            "text_only": v["text_only"], "levels": v.get("levels"),

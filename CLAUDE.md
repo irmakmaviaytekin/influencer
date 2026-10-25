@@ -169,3 +169,9 @@ Override per job with `VISION_MODEL=claude-sonnet-4-5`.
 - Commit small, with messages that explain **why**, and push — a separate planning chat reads the repo.
 - When work lands, update the "Current code" and "Roadmap" sections of this file.
 - Ask before changing the design decisions above.
+
+## Setup assistant (GUI)
+`assistant_lib.py` + the "Setup assistant" page: a chat (Haiku by default, env `ASSISTANT_MODEL`) that fills a
+draft job through one `update_job` tool; the draft is validated on each call and saved only via the same
+`validate_job` check as the Jobs page. It cannot run or save anything itself. Job settings now also include
+`frames_per_video`, `max_posts_per_profile`, `max_vision_posts_per_profile`, `include_video_cover` (env still wins).
