@@ -32,7 +32,33 @@ ACTIVE = RUNS_DIR / "gui-active.json"
 LEVEL_OPTIONS = list(rl.LEVELS)
 LEVEL_COLOR = {1: "gray", 2: "orange", 3: "red"}
 
-st.set_page_config(page_title="Creator screening", page_icon="🔎", layout="wide")
+st.set_page_config(page_title="Creator screening", layout="wide")
+st.markdown("""<style>
+.block-container {padding-top: 2.4rem; max-width: 1280px;}
+h1 {font-weight: 650 !important; letter-spacing: -.01em;}
+section[data-testid="stSidebar"] {background: #F1F5F3;}
+[data-testid="stMetric"] {background: #FFFFFF; border: 1px solid #DDE3E1; border-radius: 10px; padding: 14px 18px;}
+[data-testid="stMetricLabel"] {color: #5A6B68;}
+.brand {font-size: 1.3rem; font-weight: 700; letter-spacing: -.01em; margin-top: .2rem;}
+.brandsub {font-size: .72rem; color: #5A6B68; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 1.2rem;}
+.subtitle {color: #5A6B68; margin: -.7rem 0 1.1rem 0; font-size: 1.02rem;}
+</style>""", unsafe_allow_html=True)
+
+
+def shown(name: str, names: list[str]) -> str:
+    """Demo mode can hide real handles on screen (the data and decision log keep the real ones)."""
+    if not st.session_state.get("mask_names") or name not in names:
+        return name
+    i = names.index(name)
+    return f"Creator {chr(65 + i)}" if i < 26 else f"Creator {i + 1}"
+
+
+@st.cache_data(show_spinner=False)
+def _img(path: str, blur: bool):
+    from PIL import Image, ImageFilter
+    im = Image.open(path)
+    im.load()
+    return im.filter(ImageFilter.GaussianBlur(max(im.size) / 20)) if blur else im
 
 
 # ------------------------------------------------------------------------ helpers
@@ -126,7 +152,10 @@ def page_review() -> None:
     has_levels = any("levels" in p for p in run["per_post"])
     job = run.get("job") or {}
     if job.get("brand") or job.get("campaign"):
-        st.caption(f"{job.get('brand') or ''} — {job.get('campaign') or ''}")
+        st.markdown(f"<div class='subtitle'>{job.get('brand') or ''}"
+                    f"{' · ' if job.get('brand') and job.get('campaign') else ''}"
+                    f"{job.get('campaign') or ''} · {run.get('settings', {}).get('vision_model', '')}"
+                    f"</div>", unsafe_allow_html=True)
 
     # Sensitivity: re-applied from the saved levels, free of charge.
     base = rl.default_mins(run)
@@ -150,6 +179,7 @@ def page_review() -> None:
     decisions = rl.latest_by_creator(rid)
     table.sort(key=lambda r: (-r["flagged_posts"], r["creator"]))
 
+    names = sorted(r["creator"] for r in table)
     flagged_creators = sum(1 for r in table if r["flagged_posts"])
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Creators", len(table))
@@ -167,7 +197,7 @@ def page_review() -> None:
     for r in table:
         d = decisions.get(r["creator"], {})
         dec = d.get("decision", "—") + (f" → {d['escalated_to']}" if d.get("escalated_to") else "")
-        row = {"Creator": r["creator"], "Decision": dec, "Flagged posts": r["flagged_posts"]}
+        row = {"Creator": shown(r["creator"], names), "Decision": dec, "Flagged posts": r["flagged_posts"]}
         shade = {"Creator": "", "Decision": "", "Flagged posts": ""}
         for k, c in cats.items():
             lab, n = c.get("label", k), r["by_category"].get(k, 0)
@@ -190,8 +220,8 @@ def page_review() -> None:
                       selection_mode="single-row", key=f"tbl|{rid}")
     sel = ev.selection.rows
     st.session_state.setdefault("export", {})
-    c_exp1, c_exp2 = st.columns([1, 5])
-    if c_exp1.button("Prepare export"):
+    c_exp1, c_exp2 = st.columns([2, 5])
+    if c_exp1.button("Prepare legal export"):
         st.session_state["export"][rid] = rl.export_xlsx(run, mins)
     if rid in st.session_state["export"]:
         c_exp2.download_button("⬇ Download report for legal (.xlsx)", st.session_state["export"][rid],
@@ -203,7 +233,7 @@ def page_review() -> None:
     row = table[sel[0]]
     creator = row["creator"]
     st.divider()
-    st.subheader(creator)
+    st.subheader(shown(creator, names))
     if row["not_analyzed"]:
         st.warning(f"{row['not_analyzed']} of {row['analyzed'] + row['not_analyzed']} posts could not be "
                    f"analyzed. A clean result is not proven for this creator — consider rerunning.")
@@ -217,24 +247,26 @@ def page_review() -> None:
     if not by_post:
         st.success("Nothing flagged at this sensitivity.")
     for url, fl in sorted(by_post.items(), key=lambda kv: -max((f["level"] or 0) for f in kv[1])):
-        left, right = st.columns([1, 3])
-        shown = [ROOT / t for t in fl[0]["thumbs"] if (ROOT / t).exists()]
-        with left:
-            if shown:
-                for t in shown:
-                    st.image(str(t), width=240)
-            else:
-                st.caption("No frame saved for this run.")
-        with right:
-            for f in fl:
-                lvl = rl.LEVEL_NAMES.get(f["level"], "flagged")
-                st.badge(f"{cats.get(f['category'], {}).get('label', f['category'])} · {lvl}",
-                         color=LEVEL_COLOR.get(f["level"], "gray"))
-                st.write(f["reason"] or "—")
-            st.link_button("Open post", url)
-            st.checkbox("Not a problem (dismiss)", key=f"dis|{rid}|{creator}|{url}",
-                        value=url in prev_dismissed)
-        st.divider()
+        with st.container(border=True):
+            left, right = st.columns([1, 3])
+            shown_frames = [ROOT / t for t in fl[0]["thumbs"] if (ROOT / t).exists()]
+            with left:
+                if shown_frames:
+                    for t in shown_frames:
+                        st.image(_img(str(t), bool(st.session_state.get("blur_imgs"))), width=230)
+                else:
+                    st.caption("No frame saved for this run.")
+            with right:
+                for f in fl:
+                    lvl = rl.LEVEL_NAMES.get(f["level"], "flagged")
+                    st.badge(f"{cats.get(f['category'], {}).get('label', f['category'])} · {lvl}",
+                             color=LEVEL_COLOR.get(f["level"], "gray"))
+                    st.write(f["reason"] or "—")
+                b1, b2 = st.columns([1, 2])
+                if not st.session_state.get("mask_names"):
+                    b1.link_button("Open post", url)
+                b2.checkbox("Not a problem (dismiss)", key=f"dis|{rid}|{creator}|{url}",
+                            value=url in prev_dismissed)
 
     st.markdown("**Decision**")
     with st.form(f"decide|{rid}|{creator}"):
@@ -264,7 +296,7 @@ def page_review() -> None:
                 st.rerun()
     history = [d for d in rl.load_decisions(rid) if d["creator"] == creator]
     if history:
-        with st.expander(f"History for {creator} ({len(history)})"):
+        with st.expander(f"History for {shown(creator, names)} ({len(history)})"):
             for d in reversed(history):
                 st.write(f"**{d['decision']}** — {d['reviewer']}, {d['ts'].replace('T', ' ')}"
                          + (f" — {d['note']}" if d.get("note") else ""))
@@ -469,9 +501,15 @@ def page_log() -> None:
 
 # ---------------------------------------------------------------------------- shell
 with st.sidebar:
-    st.header("🔎 Creator screening")
-    st.text_input("Your name (recorded with each decision)", key="reviewer")
+    st.markdown("<div class='brand'>Creator screening</div><div class='brandsub'>Brand-safety review</div>",
+                unsafe_allow_html=True)
+    st.text_input("Your name", key="reviewer", help="Recorded with every decision")
     page = st.radio("Page", ["Review", "Run a job", "Jobs", "Decision log"], label_visibility="collapsed")
-    st.caption("Local tool — it shows real people's content. Don't expose it on the internet.")
+    st.divider()
+    with st.expander("Demo mode"):
+        st.toggle("Mask creator names", key="mask_names", help="Shows Creator A, B, C on screen instead of handles")
+        st.toggle("Blur evidence images", key="blur_imgs", help="Blurs faces and scenes on screen")
+        st.caption("Screen only - saved decisions and exports keep the real names.")
+    st.caption("Local tool - it shows real people's content. Don't expose it on the internet.")
 
 {"Review": page_review, "Run a job": page_run, "Jobs": page_jobs, "Decision log": page_log}[page]()
