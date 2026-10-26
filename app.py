@@ -342,6 +342,10 @@ def page_run() -> None:
     if est.get("job") == name:
         c1.success(f"{est['posts']} posts to analyze ≈ **${est_cost(est['posts'], model):.2f}** "
                    f"with {model} (rough).")
+        if est.get("fast"):
+            c1.success(f"Analysis time: about **{est['fast']}** on a good connection, up to {est['slow']} "
+                       f"if downloads are slow. Posts are now stored, so a full run skips the "
+                       f"{est.get('collect') or 'collection'} spent collecting them.")
     if c2.button("2 · Start full run", type="primary"):
         start_run(name, text_only=False)
         st.rerun()
@@ -352,7 +356,11 @@ def _finished(act: dict) -> None:
     text = "\n".join(lines)
     m = re.search(r"\((\d+) posts across", text)
     if act["text_only"] and m:
-        st.session_state["last_check"] = {"job": act["job"], "posts": int(m.group(1))}
+        t = re.search(r"Estimated vision-pass time: ~(.+?) with .*?up to ~(.+?) if downloads", text)
+        tp = re.search(r"Text pass done in (.+?)\.", text)
+        st.session_state["last_check"] = {"job": act["job"], "posts": int(m.group(1)),
+                                          "fast": t.group(1) if t else None, "slow": t.group(2) if t else None,
+                                          "collect": tp.group(1) if tp else None}
     if "STOPPING" in text or "Run stopped" in text:
         st.error("The run stopped early — see the log. Finished creators are saved.")
     elif "Run metrics" in text:
