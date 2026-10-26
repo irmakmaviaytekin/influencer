@@ -33,16 +33,16 @@ section[data-testid="stSidebar"] [data-testid="stExpander"] {{border: 1px solid 
 .logosub {{font-size:.7rem; color:{MINT}; text-transform:uppercase; letter-spacing:.14em; margin: 0 0 1.2rem 52px;}}
 
 /* page banner */
-.hero {{position:relative; overflow:hidden; border-radius:18px; padding:30px 36px; margin: 0 0 1.4rem 0;
+.hero {{position:relative; overflow:hidden; border-radius:18px; padding:30px 290px 30px 36px; margin: 0 0 1.4rem 0;
   background: radial-gradient(120% 140% at 100% 0%, #1F5A4E 0%, {DEEP} 55%, #0E2622 100%); color:#fff;
   box-shadow: 0 10px 30px rgba(15,44,38,.18);}}
 .hero .kicker {{font-size:.74rem; letter-spacing:.16em; text-transform:uppercase; color:{MINT}; font-weight:600;}}
 .hero h1 {{margin:.25rem 0 .35rem 0 !important; padding:0 !important; font-size:2.2rem !important; font-weight:700 !important;
   letter-spacing:-.02em; color:#fff !important;}}
-.hero p {{margin:0; color:#BFD8D5; font-size:1.02rem; max-width: 620px;}}
-@media (min-width: 1101px) {{.hero p {{max-width: 560px;}}}}
+.hero p {{margin:0; color:#BFD8D5; font-size:1.02rem;}}
+
 .hero > .kicker, .hero > h1, .hero > p, .hero > .chips {{position:relative; z-index:1;}}
-@media (max-width: 1100px) {{.hero .art {{display:none;}}}}
+@media (max-width: 1100px) {{.hero .art {{display:none;}} .hero {{padding-right:36px;}}}}
 .hero .art {{position:absolute; right:26px; top:50%; transform:translateY(-50%); opacity:.95;}}
 .hero .chips {{margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;}}
 .chip {{display:inline-block; padding:4px 11px; border-radius:999px; font-size:.78rem; font-weight:600;
