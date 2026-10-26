@@ -34,7 +34,7 @@ section[data-testid="stSidebar"] [data-testid="stExpander"] {{border: 1px solid 
 
 .whoami {{display:flex; align-items:center; gap:10px; background:rgba(255,255,255,.07); border-radius:12px; padding:10px 12px; margin-bottom:10px;}}
 .whoami span {{width:34px; height:34px; border-radius:50%; background:{TEAL}; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700;}}
-.whoami b, .whoami small {{color:#fff !important;}} .whoami small {{color:{MINT} !important;}}
+.whoami div {{line-height:1.25;}} .whoami b {{color:#FFFFFF !important; font-size:1rem;}} .whoami small {{color:{MINT} !important; font-size:.8rem;}}
 /* page banner */
 .hero {{position:relative; overflow:hidden; border-radius:18px; padding:30px 290px 30px 36px; margin: 0 0 1.4rem 0;
   background: radial-gradient(120% 140% at 100% 0%, #1F5A4E 0%, {DEEP} 55%, #0E2622 100%); color:#fff;
@@ -51,6 +51,16 @@ section[data-testid="stSidebar"] [data-testid="stExpander"] {{border: 1px solid 
 .chip {{display:inline-block; padding:4px 11px; border-radius:999px; font-size:.78rem; font-weight:600;
   background:rgba(127,209,188,.16); color:{MINT}; border:1px solid rgba(127,209,188,.3);}}
 
+/* inputs: clear borders on white so fields are visible */
+div[data-baseweb="input"], div[data-baseweb="textarea"], div[data-baseweb="select"] > div, [data-testid="stTextInputRootElement"], [data-testid="stTextAreaRootElement"], [data-testid="stNumberInputContainer"], [data-testid="stSelectbox"] div:has(> input), [data-testid="stMultiSelect"] div:has(> input) {{background:#FFFFFF !important; border:1.5px solid #AEBFBA !important; border-radius:10px !important;}}
+div[data-baseweb="input"]:focus-within, div[data-baseweb="textarea"]:focus-within, [data-testid="stTextInputRootElement"]:focus-within, [data-testid="stTextAreaRootElement"]:focus-within {{border-color:{TEAL} !important; box-shadow:0 0 0 3px rgba(0,128,106,.18);}}
+section[data-testid="stSidebar"] div[data-baseweb="input"] input {{color:{INK} !important;}}
+[data-testid="stFileUploaderDropzone"] {{background:#FFFFFF !important; border:1.5px dashed #7FA89D !important; border-radius:12px;}}
+[data-testid="stWidgetLabel"] p, label p {{color:{INK}; font-weight:500;}}
+section[data-testid="stSidebar"] .stButton > button {{background:rgba(255,255,255,.12); color:#FFFFFF; border:1px solid rgba(255,255,255,.35);}}
+section[data-testid="stSidebar"] .stButton > button:hover {{background:rgba(255,255,255,.22);}}
+section[data-testid="stSidebar"] .stButton > button p {{color:#FFFFFF !important;}}
+section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {{color:#A9C7C0 !important;}}
 /* cards */
 [data-testid="stMetric"] {{background:#fff; border:1px solid #E1E6E3; border-radius:14px; padding:16px 20px;
   box-shadow: 0 1px 2px rgba(15,28,26,.04); border-top:3px solid {TEAL};}}
