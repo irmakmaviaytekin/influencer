@@ -32,6 +32,9 @@ section[data-testid="stSidebar"] [data-testid="stExpander"] {{border: 1px solid 
 .logo b {{font-size: 1.25rem; color:#fff; letter-spacing:-.01em;}}
 .logosub {{font-size:.7rem; color:{MINT}; text-transform:uppercase; letter-spacing:.14em; margin: 0 0 1.2rem 52px;}}
 
+.whoami {{display:flex; align-items:center; gap:10px; background:rgba(255,255,255,.07); border-radius:12px; padding:10px 12px; margin-bottom:10px;}}
+.whoami span {{width:34px; height:34px; border-radius:50%; background:{TEAL}; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700;}}
+.whoami b, .whoami small {{color:#fff !important;}} .whoami small {{color:{MINT} !important;}}
 /* page banner */
 .hero {{position:relative; overflow:hidden; border-radius:18px; padding:30px 290px 30px 36px; margin: 0 0 1.4rem 0;
   background: radial-gradient(120% 140% at 100% 0%, #1F5A4E 0%, {DEEP} 55%, #0E2622 100%); color:#fff;

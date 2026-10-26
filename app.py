@@ -636,9 +636,46 @@ def page_log() -> None:
 
 
 # ---------------------------------------------------------------------------- shell
+ROLES = ["Reviewer", "Legal", "Brand lead", "Admin"]
+
+
+def page_login() -> None:
+    """Demo sign-in: records who is reviewing (shown on every saved decision). No password, no accounts."""
+    st.markdown("<style>section[data-testid='stSidebar'], header[data-testid='stHeader'] "
+                "{display:none;} .block-container {padding-top: 5vh;}</style>", unsafe_allow_html=True)
+    _, mid, _ = st.columns([1, 1.3, 1])
+    with mid:
+        st.markdown(f"<div style='display:flex;justify-content:center;margin-bottom:10px'>{ui.LOGO}</div>"
+                    "<h2 style='text-align:center;margin:0'>Creator screening</h2>"
+                    "<p style='text-align:center;color:#5A6B68;margin:4px 0 18px 0'>Sign in to review creators</p>",
+                    unsafe_allow_html=True)
+        with st.form("login"):
+            who = st.text_input("Your name", placeholder="e.g. Alex Morgan")
+            role = st.selectbox("Role", ROLES)
+            if st.form_submit_button("Continue", type="primary", width="stretch"):
+                if not who.strip():
+                    st.error("Enter your name.")
+                else:
+                    st.session_state["reviewer"] = who.strip()
+                    st.session_state["role"] = role
+                    st.rerun()
+        st.caption("Your name is saved with every decision you make, so each one can be traced. "
+                   "This tool runs on this computer only.")
+
+
+if not st.session_state.get("reviewer"):
+    page_login()
+    st.stop()
+
 with st.sidebar:
     ui.sidebar_logo()
-    st.text_input("Your name", key="reviewer", help="Recorded with every decision")
+    st.markdown(f"<div class='whoami'><span>{st.session_state['reviewer'][:1].upper()}</span>"
+                f"<div><b>{st.session_state['reviewer']}</b><br><small>{st.session_state.get('role', '')}</small></div></div>",
+                unsafe_allow_html=True)
+    if st.button("Sign out"):
+        for k in ("reviewer", "role"):
+            st.session_state.pop(k, None)
+        st.rerun()
     NAV = {"▣  Review": "Review", "▶  Run a job": "Run a job", "⚙  Jobs": "Jobs",
            "✦  Setup assistant": "Setup assistant", "☰  Decision log": "Decision log"}
     page = NAV[st.radio("Page", list(NAV), label_visibility="collapsed")]
