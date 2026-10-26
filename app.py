@@ -25,6 +25,7 @@ import streamlit as st
 import assistant_lib as al
 import config
 import review_lib as rl
+import ui_theme as ui
 
 ROOT = Path(__file__).parent
 JOBS_DIR = ROOT / "jobs"
@@ -34,16 +35,7 @@ LEVEL_OPTIONS = list(rl.LEVELS)
 LEVEL_COLOR = {1: "gray", 2: "orange", 3: "red"}
 
 st.set_page_config(page_title="Creator screening", layout="wide")
-st.markdown("""<style>
-.block-container {padding-top: 2.4rem; max-width: 1280px;}
-h1 {font-weight: 650 !important; letter-spacing: -.01em;}
-section[data-testid="stSidebar"] {background: #F1F5F3;}
-[data-testid="stMetric"] {background: #FFFFFF; border: 1px solid #DDE3E1; border-radius: 10px; padding: 14px 18px;}
-[data-testid="stMetricLabel"] {color: #5A6B68;}
-.brand {font-size: 1.3rem; font-weight: 700; letter-spacing: -.01em; margin-top: .2rem;}
-.brandsub {font-size: .72rem; color: #5A6B68; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 1.2rem;}
-.subtitle {color: #5A6B68; margin: -.7rem 0 1.1rem 0; font-size: 1.02rem;}
-</style>""", unsafe_allow_html=True)
+ui.apply()
 
 
 def shown(name: str, names: list[str]) -> str:
@@ -136,10 +128,10 @@ def _load_run(run_id: str, mtime: float) -> dict:
 
 # -------------------------------------------------------------------------- Review
 def page_review() -> None:
-    st.title("Review")
     runs = [r for r in rl.list_runs() if r["reviewable"]]
+    ui.hero("Review", "Creator review", "Flags with the evidence behind them. You decide; nothing is rejected automatically except competitor mentions.", "review")
     if not runs:
-        st.info("No finished runs to review yet. Start one on the **Run a job** page.")
+        ui.empty("No finished runs yet", "Start one on the Run a job page, or set it up with the Setup assistant.")
         return
 
     def label(rid: str) -> str:
@@ -160,7 +152,7 @@ def page_review() -> None:
 
     # Sensitivity: re-applied from the saved levels, free of charge.
     base = rl.default_mins(run)
-    st.markdown("**Sensitivity** — a post is flagged at or above this level")
+    ui.section("Sensitivity · a post is flagged at or above this level")
     if not has_levels:
         st.caption("This run predates saved levels, so its recorded flags are shown as they were.")
         mins = base
@@ -187,6 +179,24 @@ def page_review() -> None:
     m2.metric("With flags", flagged_creators)
     m3.metric("Flagged posts", len({f["url"] for f in flags}))
     m4.metric("Reviewed", sum(1 for r in table if r["creator"] in decisions))
+
+    top = {}
+    for f in flags:
+        if f["thumbs"] and (ROOT / f["thumbs"][0]).exists():
+            k = (f["profile"], f["url"])
+            if k not in top or (f["level"] or 0) > (top[k]["level"] or 0):
+                top[k] = f
+    best = sorted(top.values(), key=lambda f: -(f["level"] or 0))[:4]
+    if best:
+        ui.section("Strongest evidence")
+        for col, f in zip(st.columns(4), best):
+            with col, st.container(border=True):
+                st.image(_img(str(ROOT / f["thumbs"][0]), bool(st.session_state.get("blur_imgs"))), width="stretch")
+                lab = cats.get(f["category"], {}).get("label", f["category"])
+                st.markdown(f"<div class='who'>{shown(f['profile'], names)}</div>"
+                            + ui.pill(f"{lab} · {rl.LEVEL_NAMES.get(f['level'], 'flagged')}", f["level"]),
+                            unsafe_allow_html=True)
+    ui.section("All creators")
 
     lv = rl.profile_levels(run)
     word = {0: "—", 1: "incidental", 2: "notable", 3: "heavy"}
@@ -260,8 +270,8 @@ def page_review() -> None:
             with right:
                 for f in fl:
                     lvl = rl.LEVEL_NAMES.get(f["level"], "flagged")
-                    st.badge(f"{cats.get(f['category'], {}).get('label', f['category'])} · {lvl}",
-                             color=LEVEL_COLOR.get(f["level"], "gray"))
+                    st.markdown(ui.pill(f"{cats.get(f['category'], {}).get('label', f['category'])} · {lvl}",
+                                        f["level"]), unsafe_allow_html=True)
                     st.write(f["reason"] or "—")
                 b1, b2 = st.columns([1, 2])
                 if not st.session_state.get("mask_names"):
@@ -305,10 +315,10 @@ def page_review() -> None:
 
 # ----------------------------------------------------------------------- Run a job
 def page_run() -> None:
-    st.title("Run a job")
+    ui.hero("Run", "Run a job", "Check the size, time and price first, then start. Finished creators are saved as it goes.", "run")
     jobs = job_files()
     if not jobs:
-        st.info("No jobs yet. Create one on the **Jobs** page.")
+        ui.empty("No jobs yet", "Create one on the Jobs page.")
         return
     act = active_run()
     if act and act["alive"]:
@@ -402,8 +412,7 @@ def _live(act: dict) -> None:
 
 # ----------------------------------------------------------------------------- Jobs
 def page_jobs() -> None:
-    st.title("Jobs")
-    st.caption("A job is one brand or campaign's whole setup: creators, criteria and how sensitive to be.")
+    ui.hero("Jobs", "Jobs", "One brand or campaign's whole setup: creators, what to look for and how sensitive to be.", "jobs")
     existing = {p.stem: p for p in job_files()}
     pick = st.selectbox("Job", ["➕ New job"] + list(existing))
     data = read_job(existing[pick]) if pick in existing else {}
@@ -533,8 +542,7 @@ def _draft_cost(d: dict) -> tuple[int, float]:
 
 
 def page_assistant() -> None:
-    st.title("Setup assistant")
-    st.caption("Tell it what you're screening for; it fills in the job. Check the draft on the right, then save.")
+    ui.hero("Assistant", "Setup assistant", "Tell it what you're screening for and it fills in the job. Check the draft on the right, then save.", "assistant")
     ss = st.session_state
     ss.setdefault("asst_msgs", [])
     ss.setdefault("asst_draft", {})
@@ -615,11 +623,10 @@ def page_assistant() -> None:
 
 # ------------------------------------------------------------------------ Decision log
 def page_log() -> None:
-    st.title("Decision log")
-    st.caption("Every decision ever saved. Append-only: a changed decision adds a new line, nothing is overwritten.")
+    ui.hero("Audit trail", "Decision log", "Every decision ever saved. Append-only: a changed decision adds a new line, nothing is overwritten.", "log")
     d = rl.load_decisions()
     if not d:
-        st.info("No decisions yet.")
+        ui.empty("No decisions yet", "Decisions you save on the Review page appear here.")
         return
     df = pd.DataFrame(d).sort_values("ts", ascending=False)
     cols = [c for c in ("ts", "creator", "decision", "escalated_to", "reviewer", "note", "brand", "campaign", "job", "run") if c in df]
@@ -630,10 +637,11 @@ def page_log() -> None:
 
 # ---------------------------------------------------------------------------- shell
 with st.sidebar:
-    st.markdown("<div class='brand'>Creator screening</div><div class='brandsub'>Brand-safety review</div>",
-                unsafe_allow_html=True)
+    ui.sidebar_logo()
     st.text_input("Your name", key="reviewer", help="Recorded with every decision")
-    page = st.radio("Page", ["Review", "Run a job", "Jobs", "Setup assistant", "Decision log"], label_visibility="collapsed")
+    NAV = {"▣  Review": "Review", "▶  Run a job": "Run a job", "⚙  Jobs": "Jobs",
+           "✦  Setup assistant": "Setup assistant", "☰  Decision log": "Decision log"}
+    page = NAV[st.radio("Page", list(NAV), label_visibility="collapsed")]
     st.divider()
     with st.expander("Demo mode"):
         st.toggle("Mask creator names", key="mask_names", help="Shows Creator A, B, C on screen instead of handles")
